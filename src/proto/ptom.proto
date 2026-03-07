@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package ptom;
+
+service ActionService {
+  rpc ExecuteIntent (IntentRequest) returns (IntentResponse);
+}
+
+message IntentRequest {
+  string actionId = 1;
+  string targetSelector = 2;
+  string platform = 3;
+}
+
+message IntentResponse {
+  string status = 1;
+  string payload = 2;
+  string errorMessage = 3;
+}

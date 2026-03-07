@@ -1,0 +1,105 @@
+{
+    "checkoutHeader": {
+        "web": "h1:has-text(\"Checkout\")",
+        "mobile": {
+            "android": "",
+            "ios": "~Checkout"
+        }
+    },
+    "streetInput": {
+        "web":  {
+            "responsive": "[data-testid='address-responsive']",
+            "desktop": "[data-testid='address-desktop']"
+        },
+        "mobile": {
+            "android": "",
+            "ios": "~input-address"
+        }
+    },
+    "zipCodeInput": {
+        "web": "[data-testid='zip-code']",
+        "mobile": {
+            "android": "",
+            "ios": "~input-zip-code"
+        }
+    },
+    "fullNameInput": {
+        "web": {
+            "responsive": "[data-testid='full-name-responsive']",
+            "desktop": "[data-testid='full-name-desktop']"
+        },
+        "mobile": {
+            "android": "",
+            "ios": "~input-fullname"
+        }
+    },
+    "phoneNumberInput": {
+        "web": {
+            "responsive": "[data-testid='phone-responsive']",
+            "desktop": "[data-testid='phone-desktop']"
+        },
+        "mobile": {
+            "android": "",
+            "ios": "~input-phone"
+        }
+    },
+    "paymentMethodList": {
+        "web": "button[data-testid^='payment-']",
+        "mobile": {
+            "android": "",
+            "ios": "-ios class chain:**/XCUIElementTypeOther[`name BEGINSWITH 'btn-payment-'`]"
+        }
+    },
+    "cardHolderNameInput": {
+        "web": "[data-testid='card-holder']",
+        "mobile": {
+            "android": "",
+            "ios": "~input-card-holder"
+        }
+    },
+    "cardNumberInput": {
+        "web": "[data-testid='card-number']",
+        "mobile": {
+            "android": "",
+            "ios": "-ios predicate string:type == 'XCUIElementTypeTextField' AND name == 'input-card-number'"
+        }
+    },
+    "expiryDateInput": {
+        "web": "[data-testid='card-expiry']",
+        "mobile": {
+            "android": "",
+            "ios": "~input-card-expiry"
+        }
+    },
+    "cvvInput": {
+        "web": "[data-testid='card-cvv']",
+        "mobile": {
+            "android": "",
+            "ios": "~input-card-cvv"
+        }
+    },
+    "actionItemsList": {
+        "web": "button:has-text(\"Edit\"), button:has-text(\"Remove\")",
+        "mobile": {
+            "android": "",
+            "ios": "-ios class chain:**/XCUIElementTypeOther[`name BEGINSWITH 'btn-edit-item' OR name BEGINSWITH 'btn-remove-item'`]"
+        }
+    },
+    "orderDetailsList": {
+        "web": "div[data-testid^='order-']",
+        "mobile": {
+            "android": "",
+            "ios": "-ios class chain:**/XCUIElementTypeStaticText[`name IN {'text-subtotal-label','text-subtotal-value', 'text-tip-label', 'text-tax-label','text-tax-value', 'text-delivery-label','text-delivery-value', 'text-total-label','text-total-value'}`]"
+        }
+    },
+    "placeOrderButton": {
+        "web": {
+            "responsive": "[data-testid='place-order-btn-responsive']",
+            "desktop": "[data-testid='place-order-btn-desktop']"
+        },
+        "mobile": {
+            "android": "",
+            "ios": "~btn-place-order"
+        }
+    }
+}

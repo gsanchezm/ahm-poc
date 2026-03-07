@@ -1,0 +1,48 @@
+name: AHM Topological Execution Helix
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch: # Allows manual triggering for your 10,000 cycles
+
+jobs:
+  atomic-test-matrix:
+    name: Atom Execution (DAG Vertex)
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false # Crucial: We want telemetry even if one atom fails
+      matrix:
+        # Simulating 10 distinct atomic tests
+        atom_id: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] 
+        platform: [web, ios, android]
+        
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Provision Ephemeral Microkernel Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: '25.6.1'
+
+      - name: Enforce Set Theory Isolation (Docker Containerization)
+        # Using Docker Engine to guarantee namespace isolation (PID, IPC, NET)
+        # Hard-capping memory at 512MB per the methodology constraints
+        run: |
+          docker run --rm \
+            --memory="512m" \
+            --name="ahm-atom-${{ matrix.platform }}-${{ matrix.atom_id }}" \
+            -v ${{ github.workspace }}:/app \
+            -w /app \
+            node:25.6.1-alpine \
+            npm run execute:atom -- --id=${{ matrix.atom_id }} --platform=${{ matrix.platform }} > telemetry_${{ matrix.atom_id }}.jsonl
+
+      - name: Upload Stochastic Telemetry (to MinIO)
+        # In practice, you would pipe this directly using AWS CLI configured for your MinIO endpoint
+        env:
+          MINIO_ENDPOINT: ${{ secrets.MINIO_ENDPOINT }}
+          MINIO_ACCESS_KEY: ${{ secrets.MINIO_ACCESS_KEY }}
+          MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
+        run: |
+          echo "Simulating streaming telemetry_${{ matrix.atom_id }}.jsonl to MinIO bucket..."
+          # aws --endpoint-url $MINIO_ENDPOINT s3 cp telemetry_${{ matrix.atom_id }}.jsonl s3://ahm-telemetry-bucket/run-${{ github.run_id }}/
