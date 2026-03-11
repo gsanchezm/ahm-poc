@@ -1,11 +1,12 @@
-export default {
-  paths: ["src/core/tests/**/*.feature"],
+module.exports = {
+  default: {
+    paths: ["src/core/tests/**/*.feature"],
 
-  requireModule: ["ts-node/register", "dotenv/config"],
-  require: ["src/core/tests/**/step_definitions/**/*.ts"],
+    requireModule: ["ts-node/register", "dotenv/config"],
+    require: ["src/core/tests/**/step_definitions/**/*.ts"],
 
-  format: ["progress"],
-  publishQuiet: true,
+    format: ["progress"],
 
-  timeout: 180000,
+    timeout: 180000,
+  },
 };

@@ -47,7 +47,7 @@ const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
     defaults: true,
     oneofs: true,
 });
-const ptomProto = grpc.loadPackageDefinition(packageDefinition) as any;
+const ptomProto = (grpc.loadPackageDefinition(packageDefinition) as any).ptom;
 
 // --- 2. Plugin Client Pool (lazy initialization) ---
 
@@ -145,8 +145,15 @@ async function suppressChaos(
 
 // --- 7. TYPE-aware Locator Resolution ---
 
+const PASSTHROUGH_ACTIONS = new Set(['NAVIGATE', 'TEARDOWN', 'EVALUATE']);
+
 function resolveSelector(actionId: string, rawSelector: string): string {
     const normalized = actionId.toUpperCase();
+
+    // NAVIGATE and TEARDOWN pass raw values (URLs, empty strings) — no locator resolution.
+    if (PASSTHROUGH_ACTIONS.has(normalized)) {
+        return rawSelector;
+    }
 
     // For TYPE actions, format is "logicalKey||text".
     // Resolve only the key portion; preserve the text payload.

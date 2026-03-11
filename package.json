@@ -3,11 +3,11 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "proxy": "ts-node src/kernel/chaos-proxy.ts",
-    "plugin:playwright": "ts-node src/plugins/playwright/server.ts",
-    "plugin:appium": "ts-node src/plugins/appium/server.ts",
-    "plugin:api": "ts-node src/plugins/api/server.ts",
-    "plugin:gatling": "ts-node src/plugins/gatling/server.ts",
+    "proxy": "ts-node -r dotenv/config src/kernel/chaos-proxy.ts",
+    "plugin:playwright": "ts-node -r dotenv/config src/plugins/playwright/server.ts",
+    "plugin:appium": "ts-node -r dotenv/config src/plugins/appium/server.ts",
+    "plugin:api": "ts-node -r dotenv/config src/plugins/api/server.ts",
+    "plugin:gatling": "ts-node -r dotenv/config src/plugins/gatling/server.ts",
     "test": "cucumber-js"
   },
   "keywords": [],

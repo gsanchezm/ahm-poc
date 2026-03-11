@@ -17,7 +17,7 @@ async function ensureEngine(): Promise<{ browser: Browser; page: Page }> {
   if (browser && page) return { browser, page };
 
   logger.info('[Playwright Adapter] Bootstrapping chromium engine...');
-  browser = await chromium.launch({ headless: true });
+  browser = await chromium.launch({ headless: process.env.HEADLESS !== 'false' });
   page = await browser.newPage();
   return { browser, page };
 }
@@ -79,6 +79,13 @@ const actionHandlers: ReadonlyMap<string, ActionHandler> = new Map([
     async (_page, _browser, selector) => {
       const texts = await _page.locator(selector).allTextContents();
       return texts.join('\n');
+    },
+  ],
+  [
+    'EVALUATE',
+    async (_page, _browser, script) => {
+      const result = await _page.evaluate(script);
+      return result !== undefined ? String(result) : '';
     },
   ],
   [

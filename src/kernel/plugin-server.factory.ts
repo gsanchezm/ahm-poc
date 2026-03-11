@@ -19,7 +19,7 @@ export function startPluginServer(
         defaults: true,
         oneofs: true,
     });
-    const ptomProto = grpc.loadPackageDefinition(packageDef) as any;
+    const ptomProto = (grpc.loadPackageDefinition(packageDef) as any).ptom;
 
     async function handleExecuteIntent(call: any, callback: any): Promise<void> {
         const { actionId, targetSelector } = call.request;

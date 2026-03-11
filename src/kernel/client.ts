@@ -11,7 +11,7 @@ const packageDef = protoLoader.loadSync(PROTO_PATH, {
     defaults: true,
     oneofs: true,
 });
-const ptomProto = grpc.loadPackageDefinition(packageDef) as any;
+const ptomProto = (grpc.loadPackageDefinition(packageDef) as any).ptom;
 
 // --- Types ---
 
