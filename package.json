@@ -4,15 +4,19 @@
   "main": "index.js",
   "scripts": {
     "proxy": "ts-node -r dotenv/config src/kernel/chaos-proxy.ts",
-    "plugins": "ts-node -r dotenv/config src/kernel/start-plugins.ts",
+    "plugins": "ts-node src/kernel/start-plugins.ts",
     "plugin:playwright": "ts-node -r dotenv/config src/plugins/playwright/server.ts",
     "plugin:appium": "ts-node -r dotenv/config src/plugins/appium/server.ts",
     "plugin:api": "ts-node -r dotenv/config src/plugins/api/server.ts",
     "plugin:gatling": "ts-node -r dotenv/config src/plugins/gatling/server.ts",
     "test": "cucumber-js",
-    "perf:smoke": "PERF_PROFILE=smoke node -r dotenv/config node_modules/@gatling.io/cli/target/index.js run --typescript --simulations-folder src/core/tests",
-    "perf:load": "PERF_PROFILE=load node -r dotenv/config node_modules/@gatling.io/cli/target/index.js run --typescript --simulations-folder src/core/tests",
-    "perf:stress": "PERF_PROFILE=stress node -r dotenv/config node_modules/@gatling.io/cli/target/index.js run --typescript --simulations-folder src/core/tests"
+    "perf:generate": "node node_modules/ts-node/dist/bin.js scripts/generate-checkout-feeder.ts",
+    "preperf:smoke": "pnpm run perf:generate",
+    "preperf:load": "pnpm run perf:generate",
+    "preperf:stress": "pnpm run perf:generate",
+    "perf:smoke": "PERF_PROFILE=smoke node -r dotenv/config node_modules/@gatling.io/cli/target/index.js run --sources-folder src/core/tests/checkout/simulations --simulation checkout-load",
+    "perf:load": "PERF_PROFILE=load node -r dotenv/config node_modules/@gatling.io/cli/target/index.js run --sources-folder src/core/tests/checkout/simulations --simulation checkout-load",
+    "perf:stress": "PERF_PROFILE=stress node -r dotenv/config node_modules/@gatling.io/cli/target/index.js run --sources-folder src/core/tests/checkout/simulations --simulation checkout-load"
   },
   "keywords": [],
   "author": "",
@@ -23,8 +27,8 @@
   },
   "description": "",
   "dependencies": {
-    "@gatling.io/core": "^3.14.903",
-    "@gatling.io/http": "^3.14.905",
+    "@gatling.io/core": "3.14.903",
+    "@gatling.io/http": "3.14.903",
     "@grpc/grpc-js": "^1.14.3",
     "@grpc/proto-loader": "^0.8.0",
     "appium": "^3.2.2",
@@ -36,7 +40,7 @@
   },
   "devDependencies": {
     "@cucumber/cucumber": "^12.6.0",
-    "@gatling.io/cli": "^3.14.0",
+    "@gatling.io/cli": "3.14.903",
     "@types/node": "^25.3.0",
     "@types/pino": "^7.0.5",
     "dotenv": "^17.3.1",

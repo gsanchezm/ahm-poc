@@ -413,6 +413,12 @@
     footer a { color: var(--accent); text-decoration: none; }
     footer a:hover { text-decoration: underline; }
 
+    /* ─── Responsive Improvements ──────────────────────────────────── */
+    @media (max-width: 760px) {
+      .arch-description { grid-template-columns: 1fr !important; gap: 16px !important; }
+      .cicd-table table { min-width: 800px; }
+    }
+
     /* ─── Divider ──────────────────────────────────────────────── */
     .divider {
       height: 1px;
@@ -430,8 +436,8 @@
   <a class="nav-brand" href="#">AHM</a>
   <ul class="nav-links">
     <li><a href="#features">Features</a></li>
-    <li><a href="#workflow">Workflow</a></li>
-    <li><a href="#docs">Docs</a></li>
+    <li><a href="#architecture">Architecture</a></li>
+    <li><a href="#cicd">CI/CD</a></li>
     <li><a href="#laws">Laws</a></li>
   </ul>
   <a class="nav-cta" href="https://github.com/gilbertosanchez/ahm-poc" target="_blank" rel="noopener">GitHub →</a>
@@ -444,14 +450,13 @@
 
       <div class="hero-text">
         <p class="hero-eyebrow">Testing-Oriented Microkernel (TOM)</p>
-        <h1>Unified Testing at the Speed of Light.</h1>
+        <h1>Deterministic testing for a multithreaded world.</h1>
         <p class="hero-sub">
-          AHM is a Testing-Oriented Microkernel that orchestrates Web, Mobile, API, and Performance
-          tests through isolated gRPC plugins. Stop chasing flakiness — suppress the chaos.
+          The **Atomic Helix Model (AHM)** is a deterministic testing paradigm that replaces heuristic metaphors — the Test Pyramid, Testing Trophy, and Testing Honeycomb — with a formal, mathematically grounded execution framework. Stop guessing. Suppress the chaos.
         </p>
         <div class="hero-ctas">
-          <a class="btn-primary" href="#docs">Explore Documentation</a>
-          <a class="btn-secondary" href="https://github.com/gilbertosanchez/ahm-poc" target="_blank" rel="noopener">View on GitHub</a>
+          <a class="btn-primary" href="#architecture">View Architecture</a>
+          <a class="btn-secondary" href="https://github.com/gilbertosanchez/ahm-poc" target="_blank" rel="noopener">Explore Code</a>
         </div>
       </div>
 
@@ -534,42 +539,78 @@
 
 <div class="divider"></div>
 
-<!-- ── Workflow ──────────────────────────────────────────────────────────────── -->
-<section id="workflow">
+<!-- ── Architecture Diagram ─────────────────────────────────────────────────── -->
+<section id="architecture">
   <div class="container">
-    <span class="tag">Developer Workflow</span>
-    <h2 class="section-title">Write Once. Run Everywhere.</h2>
-    <p class="section-sub">A Gherkin step travels through four deterministic layers before touching a platform. Each boundary is typed and observable.</p>
+    <span class="tag">System Design</span>
+    <h2 class="section-title">The Unified Execution Helix.</h2>
+    <p class="section-sub">TOM decentralizes execution into pure gRPC plugins, coordinated by a chaos-resilient microkernel proxy.</p>
 
-    <div class="flow-steps">
-      <div class="flow-step">
-        <div class="flow-box">
-          <div class="flow-num">1</div>
-          <h4>Gherkin Feature</h4>
-          <p>Business intent in plain language</p>
-        </div>
+    <div class="arch-container" style="margin-top: 48px; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); box-shadow: 0 12px 48px rgba(0,0,0,.4);">
+      <img src="docs/images/ahm-architecture.png" alt="AHM Architecture Diagram" style="width: 100%; display: block; filter: contrast(110%);" />
+    </div>
+
+    <div class="arch-description" style="margin-top: 32px; display: grid; grid-template-columns: 1fr 1fr; gap: 32px;">
+      <div class="arch-card" style="background: var(--surface-1); padding: 24px; border-radius: 12px; border: 1px solid var(--border);">
+        <h4 style="color: var(--accent); margin-bottom: 8px;">Microkernel Intent Loop</h4>
+        <p style="font-size: .88rem; color: var(--text-muted);">
+          Every intent is received at port 50051, where the Microkernel applies dynamic locator resolution and chaos suppression (Lyapunov stabilization) before fan-out to the targeted execution driver over gRPC.
+        </p>
       </div>
-      <div class="flow-step">
-        <div class="flow-box">
-          <div class="flow-num">2</div>
-          <h4>client.ts</h4>
-          <p>sendIntent() → gRPC stub</p>
-        </div>
+      <div class="arch-card" style="background: var(--surface-1); padding: 24px; border-radius: 12px; border: 1px solid var(--border);">
+        <h4 style="color: var(--accent); margin-bottom: 8px;">Performance Convergence</h4>
+        <p style="font-size: .88rem; color: var(--text-muted);">
+          Gatling integration is bidirectional: standalone CLI execution for heavy load profiles and TOM-driven intents that return SimulationMetrics direct to the BDD layer in real-time.
+        </p>
       </div>
-      <div class="flow-step">
-        <div class="flow-box">
-          <div class="flow-num">3</div>
-          <h4>chaos-proxy</h4>
-          <p>Locator resolution + chaos suppression</p>
-        </div>
-      </div>
-      <div class="flow-step">
-        <div class="flow-box">
-          <div class="flow-num">4</div>
-          <h4>gRPC Plugin</h4>
-          <p>Playwright · Appium · API · Gatling</p>
-        </div>
-      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ── CI/CD ────────────────────────────────────────────────────────────────── -->
+<section id="cicd" style="background: var(--surface-1);">
+  <div class="container">
+    <span class="tag">Helix Continuity</span>
+    <h2 class="section-title">Unified Continuous Execution.</h2>
+    <p class="section-sub">A single workflow, one source of truth. All execution layers (API, Web, Android, Perf) unified into a single AHM Execution Helix.</p>
+
+    <div class="cicd-table" style="margin-top: 48px; overflow-x: auto; background: var(--surface-2); border-radius: var(--radius); border: 1px solid var(--border);">
+      <table style="width: 100%; text-align: left; border-collapse: collapse;">
+        <thead>
+          <tr style="border-bottom: 2px solid var(--border);">
+            <th style="padding: 18px; font-size: .9rem;">Trigger Event</th>
+            <th style="padding: 18px; font-size: .9rem;">API Smoke</th>
+            <th style="padding: 18px; font-size: .9rem;">Web E2E</th>
+            <th style="padding: 18px; font-size: .9rem;">Perf Gatling</th>
+            <th style="padding: 18px; font-size: .9rem;">Android Appium</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom: 1px solid var(--border);">
+            <td style="padding: 18px; font-size: .88rem; font-weight: 700;">Push to main</td>
+            <td style="padding: 18px; color: #3fb950;">✅ Running</td>
+            <td style="padding: 18px; color: #3fb950;">✅ Running</td>
+            <td style="padding: 18px; color: #3fb950;">✅ Running (Smoke)</td>
+            <td style="padding: 18px; color: var(--text-muted);">—</td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--border);">
+            <td style="padding: 18px; font-size: .88rem; font-weight: 700;">Pull Request</td>
+            <td style="padding: 18px; color: #3fb950;">✅ Running</td>
+            <td style="padding: 18px; color: #3fb950;">✅ Running</td>
+            <td style="padding: 18px; color: var(--text-muted);">—</td>
+            <td style="padding: 18px; color: var(--text-muted);">—</td>
+          </tr>
+          <tr>
+            <td style="padding: 18px; font-size: .88rem; font-weight: 700;">Manual Helix Dispatch</td>
+            <td style="padding: 18px; color: #58a6ff;">Optional</td>
+            <td style="padding: 18px; color: #58a6ff;">Optional</td>
+            <td style="padding: 18px; color: #58a6ff;">Optional</td>
+            <td style="padding: 18px; color: #ffbd2e;">Manual Selection Only</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </div>
 </section>

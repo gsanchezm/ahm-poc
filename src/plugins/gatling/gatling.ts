@@ -1,111 +1,101 @@
-import { simulation, scenario, atOnceUsers, rampUsers, constantUsersPerSec } from '@gatling.io/core';
-import { http } from '@gatling.io/http';
-import { logger } from '../../utils/logger';
+import { logger }              from '../../utils/logger';
+import { runSimulation }       from './support/simulation-runner';
+import { parseGatlingStats }   from './support/metrics-parser';
+import { RunnerOptions, PerfProfile } from './support/types';
 
-// --- Types ---
+// NOTE: @gatling.io/core and @gatling.io/http must NOT be imported here.
+// Those packages call Java.type() at load time and only work inside the
+// Gatling JVM runner (gatling-js-bundle). This server runs in plain Node.js.
+// All simulations are executed as subprocesses via runSimulation().
 
 type PerfHandler = (target: string) => Promise<string>;
 
-const ACTION_TYPE_SEPARATOR = '||';
+const JVM_ONLY_MESSAGE =
+    'This action requires the Gatling JVM context and cannot run inside the gRPC plugin server. ' +
+    'Use RUN_CHECKOUT_LOAD (or a future feature-specific action) to trigger simulations as subprocesses.';
 
-// --- Injection Profile Parsers ---
-
-const INJECTION_PROFILES: Record<string, (params: Record<string, string>) => any> = {
-    ramp: (p) => rampUsers(parseInt(p.users)).during(parseInt(p.duration)),
-    constant: (p) => constantUsersPerSec(parseInt(p.users)).during(parseInt(p.duration)),
-    atonce: (p) => atOnceUsers(parseInt(p.users)),
-};
-
-function parseInjectionProfile(profileSettings: string) {
-    const params = Object.fromEntries(
-        profileSettings.split(ACTION_TYPE_SEPARATOR).map((p) => p.split('=')),
-    );
-
-    const profileType = (params.profile || 'ramp').toLowerCase();
-    const profileFactory = INJECTION_PROFILES[profileType];
-
-    if (!profileFactory) {
-        throw new Error(
-            `Unknown injection profile: "${profileType}". Supported: ${Object.keys(INJECTION_PROFILES).join(', ')}`,
-        );
-    }
-
-    return profileFactory(params);
-}
-
-// --- Intent → Handler Map ---
+// ---------------------------------------------------------------------------
+// Intent → Handler Map
+// ---------------------------------------------------------------------------
 
 const actionHandlers: ReadonlyMap<string, PerfHandler> = new Map([
     [
         'SCENARIO_LOAD',
-        async (config: string) => {
-            // config format: "baseUrl||scenarioName||endpoint"
-            const [baseUrl, name, endpoint] = config.split(ACTION_TYPE_SEPARATOR);
-
-            if (!baseUrl || !name || !endpoint) {
-                throw new Error("SCENARIO_LOAD requires 'baseUrl||scenarioName||endpoint' format.");
-            }
-
-            scenario(name).exec(http('request').get(endpoint));
-
-            logger.info(`[Gatling] Scenario "${name}" loaded: ${baseUrl}${endpoint}`);
-            return `Scenario "${name}" loaded against ${baseUrl}${endpoint}`;
-        },
+        async (_config: string) => { throw new Error(JVM_ONLY_MESSAGE); },
     ],
     [
         'INJECT_LOAD',
-        async (profileSettings: string) => {
-            // profileSettings: "users=100||duration=60||profile=ramp"
-            parseInjectionProfile(profileSettings);
-            logger.info(`[Gatling] Injection profile configured: ${profileSettings}`);
-            return `Load injection configured: ${profileSettings}`;
-        },
+        async (_config: string) => { throw new Error(JVM_ONLY_MESSAGE); },
     ],
     [
         'RUN_SIMULATION',
+        async (_config: string) => { throw new Error(JVM_ONLY_MESSAGE); },
+    ],
+    [
+        'RUN_CHECKOUT_LOAD',
         async (config: string) => {
-            // config format: "baseUrl||scenarioName||endpoint||users=N||duration=N||profile=ramp"
-            const parts = config.split(ACTION_TYPE_SEPARATOR);
+            // config: "<profile>" | "<profile>||KEY=VALUE||..."
+            // e.g. "smoke" | "load||PERF_USERS=30||PERF_DURATION=90"
+            const [rawProfile = 'smoke', ...extraPairs] = config.split('||');
+            const profile = rawProfile.trim().toLowerCase() as PerfProfile;
 
-            if (parts.length < 3) {
-                throw new Error("RUN_SIMULATION requires at least 'baseUrl||scenarioName||endpoint'.");
+            if (!Object.values(PerfProfile).includes(profile)) {
+                throw new Error(
+                    `Invalid profile "${profile}". Valid values: ${Object.values(PerfProfile).join(' | ')}`,
+                );
             }
 
-            const [baseUrl, name, endpoint, ...injectionParts] = parts;
-            const injectionConfig = injectionParts.join(ACTION_TYPE_SEPARATOR) || 'users=1||profile=atonce';
-            const injectionProfile = parseInjectionProfile(injectionConfig);
+            const extraEnv: Record<string, string> = Object.fromEntries(
+                extraPairs
+                    .map(pair => pair.split('=') as [string, string])
+                    .filter(([k]) => k?.length > 0),
+            );
 
-            const httpProtocol = http.baseUrl(baseUrl);
-            const scn = scenario(name).exec(http('request').get(endpoint));
+            logger.info(`[Gatling] RUN_CHECKOUT_LOAD profile="${profile}" env=${JSON.stringify(extraEnv)}`);
 
-            logger.info(`[Gatling] Running simulation "${name}": ${baseUrl}${endpoint}`);
-
-            await new Promise<void>((resolve) => {
-                simulation((setUp: any) => {
-                    setUp(scn.injectOpen(injectionProfile)).protocols(httpProtocol);
-                    resolve();
-                });
+            const { exitCode, reportDir } = await runSimulation({
+                profile,
+                sourcesFolder: 'src/core/tests/checkout/simulations',
+                simulation:    'checkout-load',
+                env:           extraEnv,
             });
 
-            return `Simulation "${name}" completed successfully`;
+            const metrics = parseGatlingStats(reportDir, 'checkout-load', profile);
+
+            logger.info(
+                `[Gatling] checkout-load complete — ` +
+                `${metrics.requests.ok}/${metrics.requests.total} OK, ` +
+                `p95=${metrics.responseTime.p95}ms, ` +
+                `status=${metrics.status}`,
+            );
+
+            if (exitCode !== 0 || metrics.status === 'FAIL') {
+                throw new Error(
+                    `Checkout simulation FAILED (exitCode=${exitCode}): ${JSON.stringify(metrics)}`,
+                );
+            }
+
+            return JSON.stringify(metrics);
         },
     ],
 ]);
 
-// --- Public API ---
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
 
 export async function execute(
-    actionId: string,
+    actionId:       string,
     targetSelector: string,
 ): Promise<string> {
     const normalizedAction = actionId.toUpperCase();
 
-    logger.info(`[Gatling Adapter] Relaying intent ${normalizedAction} to load engine...`);
+    logger.info(`[Gatling Adapter] Received intent: ${normalizedAction}`);
 
     const handler = actionHandlers.get(normalizedAction);
     if (!handler) {
-        throw new Error(`Unsupported Gatling performance actionId: ${actionId}`);
+        throw new Error(`Unsupported Gatling actionId: "${actionId}"`);
     }
 
-    return await handler(targetSelector);
+    return handler(targetSelector);
 }

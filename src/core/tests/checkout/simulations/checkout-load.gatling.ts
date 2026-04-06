@@ -1,11 +1,17 @@
 /**
  * Checkout Load Simulation
  *
- * Mirrors the checkout.feature scenario at the API level:
- *   Login → Get Pizzas (by market) → Add to Cart
+ * Feature-driven: feeder rows come directly from checkout.feature Examples tables.
+ * The .feature file is the single source of truth — no hardcoded data here.
  *
- * Test data comes directly from the feature file Examples tables (US/MX/CH/JP).
- * Each virtual user is assigned a scenario from the feeder in circular order.
+ * API flow (mirrors the Scenario Outline at the HTTP level):
+ *   Login → Get Pizzas (by market) → Checkout (items + delivery + payment)
+ *
+ * Market-specific address fields:
+ *   US  → zip_code
+ *   MX  → zip_code + colonia  (suburb column)
+ *   CH  → plz
+ *   JP  → zip_code + prefectura  (suburb column)
  *
  * Usage:
  *   pnpm perf:smoke    →  1 user, single iteration (validate the chain works)
@@ -31,18 +37,14 @@ import {
 } from '@gatling.io/core';
 import { http } from '@gatling.io/http';
 
+import { checkoutRows } from './checkout-rows.generated';
+
 // ---------------------------------------------------------------------------
-// Test data — mirrors checkout.feature Examples tables (Credit Card + Cash rows)
+// Feeder — sourced from checkout.feature Examples tables (pre-generated)
+// Re-generate with: ts-node scripts/generate-checkout-feeder.ts
 // ---------------------------------------------------------------------------
 
-const checkoutFeeder = arrayFeeder([
-    // Examples: Credit Card (active in feature)
-    { market: 'US', item: 'Pepperoni', size: 'Large',  qty: 1 },
-    // Examples: commented rows — included here to distribute load across markets
-    { market: 'MX', item: 'Margarita', size: 'Medium', qty: 3 },
-    { market: 'CH', item: 'Marinara',  size: 'Small',  qty: 1 },
-    { market: 'JP', item: 'Pepperoni', size: 'Family', qty: 2 },
-]).circular();
+const checkoutFeeder = arrayFeeder(checkoutRows).circular();
 
 // ---------------------------------------------------------------------------
 // Injection profile — controlled by PERF_PROFILE env var
@@ -92,11 +94,11 @@ export default simulation((setUp) => {
             http('Login')
                 .post('/api/auth/login')
                 .body(StringBody('{"username":"standard_user","password":"pizza123"}'))
-                .check(jsonPath('$.token').saveAs('token')),
+                .check(jsonPath('$.access_token').saveAs('token')),
         )
 
         // ── Step 2: Get Pizzas for the feeder market ───────────────────────
-        // Mirrors: "they are ordering in market <market>" + pizza catalog fetch
+        // Mirrors: "they are ordering in market <market>"
         .exec(
             http('Get Pizzas')
                 .get('/api/pizzas')
@@ -106,7 +108,6 @@ export default simulation((setUp) => {
         )
 
         // ── Extract pizza ID matching feeder item ──────────────────────────
-        // Mirrors: OrderingDao.getPizzas → find by name
         .exec((session: Session) => {
             const body  = JSON.parse(session.get<string>('pizzasBody'));
             const item  = session.get<string>('item');
@@ -121,25 +122,57 @@ export default simulation((setUp) => {
             return session.set('pizzaId', pizza.id);
         })
 
-        // ── Step 3: Add to Cart ────────────────────────────────────────────
-        // Mirrors: "they have an order with <item> size <size> quantity <qty>"
+        // ── Build market-specific checkout payload ─────────────────────────
+        .exec((session: Session) => {
+            const market  = session.get<string>('market');
+            const zip     = session.get<string>('zip');
+            const suburb  = session.get<string>('suburb');
+            const payment = session.get<string>('payment');
+
+            const payload: Record<string, unknown> = {
+                country_code: market,
+                items: [{
+                    pizza_id: session.get<string>('pizzaId'),
+                    size:     session.get<string>('size'),
+                    quantity: session.get<number>('qty'),
+                }],
+                name:           session.get<string>('name'),
+                address:        session.get<string>('street'),
+                phone:          session.get<string>('phone'),
+                payment_method: payment,
+            };
+
+            // Market-specific zip / suburb fields
+            if (market === 'CH') {
+                payload['plz'] = zip;
+            } else {
+                payload['zip_code'] = zip;
+            }
+            if (market === 'MX' && suburb) {
+                payload['colonia'] = suburb;
+            }
+            if (market === 'JP' && suburb) {
+                payload['prefectura'] = suburb;
+            }
+
+            // Card details (Credit Card only)
+            if (payment === 'Credit Card') {
+                payload['card_number'] = session.get<string>('card');
+                payload['card_expiry'] = session.get<string>('exp');
+                payload['card_cvv']    = session.get<string>('cvv');
+            }
+
+            return session.set('checkoutBody', JSON.stringify(payload));
+        })
+
+        // ── Step 3: Checkout ───────────────────────────────────────────────
+        // Mirrors: "they provide delivery details" + "they choose payment method"
         .exec(
-            http('Add to Cart')
-                .post('/api/cart')
+            http('Checkout')
+                .post('/api/checkout')
                 .header('Authorization', (session: Session) => `Bearer ${session.get<string>('token')}`)
-                .header('x-country-code', (session: Session) => session.get<string>('market'))
-                .body(
-                    StringBody((session: Session) =>
-                        JSON.stringify({
-                            items: [{
-                                pizza_id: session.get<string>('pizzaId'),
-                                size:     session.get<string>('size'),
-                                quantity: session.get<number>('qty'),
-                            }],
-                        }),
-                    ),
-                )
-                .check(jsonPath('$.cart_items').exists()),
+                .body(StringBody((session: Session) => session.get<string>('checkoutBody')))
+                .check(jsonPath('$.order_id').exists()),
         );
 
     setUp(checkout.injectOpen(injectionProfile())).protocols(httpProtocol);

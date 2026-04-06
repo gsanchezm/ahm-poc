@@ -36,3 +36,5 @@ assets/
 .antigravity/
 .agents/
 docs/
+target/
+src/core/tests/checkout/simulations/checkout-rows.generated.ts
