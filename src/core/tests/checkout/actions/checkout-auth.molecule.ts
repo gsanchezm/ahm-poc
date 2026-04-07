@@ -7,12 +7,21 @@ const log = logger.child({ layer: 'molecule', action: 'auth' });
 export interface BrowserSessionState {
     token: string;
     username: string;
+    password: string;
     countryCode: string;
     cartItems: CartItemResponse[];
     countryInfo: CountryInfo;
 }
 
 export async function injectBrowserSession(session: BrowserSessionState): Promise<void> {
+    // On mobile (React Native), Zustand state is ephemeral — no persistence layer.
+    // The auth token is injected via the deep link accessToken param (handled by
+    // useDeepLinkParams in OmniPizza), so no UI login or localStorage manipulation needed.
+    if (process.env.DRIVER === 'appium') {
+        log.info({ countryCode: session.countryCode }, 'Skipping session injection — token injected via deep link accessToken param');
+        return;
+    }
+
     const baseUrl = process.env.BASE_URL;
     if (!baseUrl) {
         throw new Error('Missing required env var: BASE_URL');
@@ -48,11 +57,6 @@ export async function injectBrowserSession(session: BrowserSessionState): Promis
         `localStorage.removeItem('omnipizza-cart')`,
         `localStorage.removeItem('omnipizza-order')`,
     ];
-
-    // On mobile (React Native WebView), switch to WebView context so localStorage is accessible
-    if (process.env.DRIVER === 'appium') {
-        await sendIntent('SWITCH_CONTEXT', 'WEBVIEW');
-    }
 
     await sendIntent('EVALUATE', setters.join('; '));
 

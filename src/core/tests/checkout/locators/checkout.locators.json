@@ -1,10 +1,7 @@
 {
   "checkoutHeader": {
     "web": "h1:has-text(\"Checkout\")",
-    "mobile": {
-      "android": "~text-navbar-title",
-      "ios": "~Checkout"
-    }
+    "mobile": "~screen-checkout"
   },
   "streetInput": {
     "web": {

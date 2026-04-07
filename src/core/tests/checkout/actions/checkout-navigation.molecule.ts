@@ -4,7 +4,27 @@ import { logger } from '../../../../utils/logger';
 const log = logger.child({ layer: 'molecule', action: 'navigation' });
 const CHECKOUT_PATH = '/checkout';
 
-export async function navigateToCheckout(): Promise<void> {
+export async function navigateToCheckout(market?: string, accessToken?: string): Promise<void> {
+    const driver = process.env.DRIVER ?? 'playwright';
+
+    // Atomic mobile path: deep link directly to the checkout screen, bypassing the
+    // full user journey (Login → Catalog → PizzaBuilder). The app hydrates the cart
+    // from the backend via hydrateCart=true; market sets the country context;
+    // accessToken seeds the Zustand auth store via useDeepLinkParams.
+    if (driver === 'appium') {
+        const params = new URLSearchParams({ hydrateCart: 'true' });
+        if (market) params.set('market', market);
+        if (accessToken) params.set('accessToken', accessToken);
+        await sendIntent('DEEP_LINK', `omnipizza://checkout?${params.toString()}`);
+        await sendIntent('WAIT_FOR_ELEMENT', 'checkoutHeader||8000');
+        // Wait for the first form input to confirm the checkout form is fully rendered,
+        // not just the navigation bar header.
+        await sendIntent('WAIT_FOR_ELEMENT', 'streetInput||10000');
+        log.info({ market }, 'Deep linked to checkout screen (atomic mobile path)');
+        return;
+    }
+
+    // Web path: navigate via URL
     const baseUrl = process.env.BASE_URL;
     if (!baseUrl) {
         throw new Error('Missing required env var: BASE_URL');

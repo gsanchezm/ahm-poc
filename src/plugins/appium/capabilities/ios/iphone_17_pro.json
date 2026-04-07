@@ -2,6 +2,7 @@
   "platformName": "iOS",
   "appium:automationName": "XCUITest",
   "appium:deviceName": "iPhone 17 Pro",
+  "appium:bundleId": "com.omnipizza.app",
   "appium:platformVersion": "26.2",
   "appium:noReset": true,
   "appium:fullReset": false,

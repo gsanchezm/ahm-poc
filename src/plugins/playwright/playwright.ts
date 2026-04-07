@@ -108,6 +108,48 @@ const actionHandlers: ReadonlyMap<string, ActionHandler> = new Map([
     },
   ],
   [
+    'WAIT_FOR_ELEMENT',
+    async (_page, _browser, composite) => {
+      const sepIndex = composite.indexOf(ACTION_TYPE_SEPARATOR);
+      const selector  = sepIndex === -1 ? composite : composite.slice(0, sepIndex);
+      const timeoutMs = sepIndex === -1
+        ? 5000
+        : parseInt(composite.slice(sepIndex + ACTION_TYPE_SEPARATOR.length), 10);
+
+      await _page.locator(selector).waitFor({ state: 'visible', timeout: timeoutMs });
+      return `Element visible: ${selector}`;
+    },
+  ],
+  [
+    'ASSERT_TEXT',
+    async (_page, _browser, composite) => {
+      const sepIndex = composite.indexOf(ACTION_TYPE_SEPARATOR);
+
+      if (sepIndex === -1) {
+        throw new Error("ASSERT_TEXT action requires 'selector||expectedText' format.");
+      }
+
+      const selector = composite.slice(0, sepIndex);
+      const expected = composite.slice(sepIndex + ACTION_TYPE_SEPARATOR.length);
+      const actual   = await _page.locator(selector).innerText();
+
+      if (actual !== expected) {
+        throw new Error(
+          `[ASSERT_TEXT] Mismatch on "${selector}": expected "${expected}", got "${actual}"`,
+        );
+      }
+
+      return actual;
+    },
+  ],
+  [
+    'SCROLL_TO',
+    async (_page, _browser, selector) => {
+      await _page.locator(selector).scrollIntoViewIfNeeded();
+      return `Scrolled to: ${selector}`;
+    },
+  ],
+  [
     'EVALUATE',
     async (_page, _browser, script) => {
       const result = await _page.evaluate(script);

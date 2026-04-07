@@ -23,7 +23,6 @@ function listProfiles(): string {
 
 function resolveAppPath(envVar: string | undefined): string | undefined {
     if (!envVar) return undefined;
-    // Resolve relative paths to absolute so Appium can locate the app file
     const resolved = path.isAbsolute(envVar) ? envVar : path.resolve(process.cwd(), envVar);
     if (!fs.existsSync(resolved)) {
         logger.warn({ path: resolved }, '[Appium] App file not found — check ANDROID_APP_PATH / IOS_APP_PATH');
@@ -88,6 +87,12 @@ function loadCapabilities(sessionId: string = '0'): Record<string, unknown> {
         caps['appium:wdaLocalPort'] = basePort + parseInt(sessionId, 10);
     }
 
+    // Cache app identifier for DEEP_LINK (read once from caps at session creation time)
+    if (!cachedAppId) {
+        if (PLATFORM === 'android') cachedAppId = caps['appium:appPackage'] as string | undefined;
+        if (PLATFORM === 'ios') cachedAppId = caps['appium:bundleId'] as string | undefined;
+    }
+
     logger.info({ profile: CAP_PROFILE, platform: PLATFORM, sessionId, udid: udid ?? 'auto' }, '[Appium] Capabilities loaded');
     return caps;
 }
@@ -99,6 +104,19 @@ const ACTION_TYPE_SEPARATOR = '||';
 const APPIUM_HOST = process.env.APPIUM_HOST || '127.0.0.1';
 const APPIUM_PORT = parseInt(process.env.APPIUM_PORT || '4723', 10);
 
+// --- App identifier (resolved from capabilities; used by DEEP_LINK) ---
+
+let cachedAppId: string | undefined;
+
+function getAppId(): string {
+    if (cachedAppId) return cachedAppId;
+    // Env var override — useful when running without a full capability profile
+    cachedAppId = PLATFORM === 'ios'
+        ? (process.env.APP_BUNDLE_ID ?? 'com.omnipizza.app')
+        : (process.env.APP_PACKAGE ?? 'com.omnipizza.app');
+    return cachedAppId;
+}
+
 // --- Session Map (mirrors Playwright pattern for parallel isolation) ---
 
 const sessions: Map<string, Browser> = new Map();
@@ -106,7 +124,6 @@ const sessions: Map<string, Browser> = new Map();
 async function ensureSession(sessionId: string): Promise<Browser> {
     if (sessions.has(sessionId)) return sessions.get(sessionId)!;
 
-    // Capabilities are resolved per session so each worker gets its own UDID / WDA port
     const capabilities = loadCapabilities(sessionId);
     const wdioOptions = {
         hostname: APPIUM_HOST,
@@ -144,6 +161,46 @@ const actionHandlers: ReadonlyMap<string, ActionHandler> = new Map([
         },
     ],
     [
+        /**
+         * DEEP_LINK — navigate directly to a screen via the omnipizza:// URI scheme.
+         *
+         * Target format: full URI or path-only (scheme is prepended automatically)
+         *   omnipizza://checkout?hydrateCart=true&market=US
+         *   checkout?hydrateCart=true&market=US        ← scheme added if missing
+         *
+         * Supported universal params (pass in the URI query string):
+         *   market=US|MX|CH|JP   set country context
+         *   lang=de|fr           override language (CH only)
+         *   resetSession=true    clear auth state and navigate to login
+         *
+         * Supported routes:
+         *   omnipizza://login
+         *   omnipizza://catalog
+         *   omnipizza://pizza-builder?pizzaId=<id>&size=<size>
+         *   omnipizza://checkout?hydrateCart=true
+         *   omnipizza://order-success?orderId=<id>
+         *   omnipizza://profile
+         *
+         * Platform dispatch:
+         *   iOS     → mobile: deepLink  { url, bundleId }
+         *   Android → mobile: deepLink  { url, package }
+         */
+        'DEEP_LINK',
+        async (_driver, rawUrl) => {
+            const url = rawUrl.startsWith('omnipizza://') ? rawUrl : `omnipizza://${rawUrl}`;
+            const appId = getAppId();
+
+            if (PLATFORM === 'ios') {
+                await _driver.executeScript('mobile: deepLink', [{ url, bundleId: appId }]);
+            } else {
+                await _driver.executeScript('mobile: deepLink', [{ url, package: appId }]);
+            }
+
+            logger.debug({ url, appId, platform: PLATFORM }, '[Appium] Deep link invoked');
+            return `Deep linked to: ${url}`;
+        },
+    ],
+    [
         'SWITCH_CONTEXT',
         async (_driver, contextName) => {
             const contexts = await _driver.getContexts() as string[];
@@ -155,7 +212,6 @@ const actionHandlers: ReadonlyMap<string, ActionHandler> = new Map([
                 await _driver.switchContext(webview);
                 return `Switched to context: ${webview}`;
             }
-            // NATIVE or explicit context name
             const target = contextName === 'NATIVE' ? 'NATIVE_APP' : contextName;
             await _driver.switchContext(target);
             return `Switched to context: ${target}`;
@@ -202,10 +258,71 @@ const actionHandlers: ReadonlyMap<string, ActionHandler> = new Map([
         },
     ],
     [
+        /**
+         * WAIT_FOR_ELEMENT — waits until an element is displayed.
+         *
+         * Target format: selector  OR  selector||timeoutMs
+         *   ~checkout-total                  (5 000 ms default)
+         *   ~checkout-total||10000           (10 s explicit timeout)
+         */
+        'WAIT_FOR_ELEMENT',
+        async (_driver, composite) => {
+            const sepIndex = composite.indexOf(ACTION_TYPE_SEPARATOR);
+            const selector = sepIndex === -1 ? composite : composite.slice(0, sepIndex);
+            const timeoutMs = sepIndex === -1
+                ? 5000
+                : parseInt(composite.slice(sepIndex + ACTION_TYPE_SEPARATOR.length), 10);
+
+            await _driver.$(selector).waitForDisplayed({ timeout: timeoutMs });
+            return `Element displayed: ${selector}`;
+        },
+    ],
+    [
+        /**
+         * ASSERT_TEXT — asserts an element's text matches the expected value.
+         *
+         * Target format: selector||expectedText
+         *   ~order-id-label||ORDER-ABC123
+         *
+         * Throws on mismatch so the proxy propagates a test failure.
+         */
+        'ASSERT_TEXT',
+        async (_driver, composite) => {
+            const sepIndex = composite.indexOf(ACTION_TYPE_SEPARATOR);
+
+            if (sepIndex === -1) {
+                throw new Error("ASSERT_TEXT action requires 'selector||expectedText' format.");
+            }
+
+            const selector = composite.slice(0, sepIndex);
+            const expected = composite.slice(sepIndex + ACTION_TYPE_SEPARATOR.length);
+            const actual = await _driver.$(selector).getText();
+
+            if (actual !== expected) {
+                throw new Error(
+                    `[ASSERT_TEXT] Mismatch on "${selector}": expected "${expected}", got "${actual}"`,
+                );
+            }
+
+            return actual;
+        },
+    ],
+    [
+        /**
+         * SCROLL_TO — scrolls the element into view.
+         *
+         * Target format: selector
+         *   ~place-order-button
+         */
+        'SCROLL_TO',
+        async (_driver, selector) => {
+            await _driver.$(selector).scrollIntoView();
+            return `Scrolled to: ${selector}`;
+        },
+    ],
+    [
         'EVALUATE',
         async (_driver, script) => {
-            // Works for WebView contexts; for native apps this executes mobile: shell or
-            // Appium's execute() bridge depending on the automation context.
             const result = await _driver.execute(script);
             return result !== undefined ? String(result) : '';
         },
@@ -213,7 +330,6 @@ const actionHandlers: ReadonlyMap<string, ActionHandler> = new Map([
     [
         'TEARDOWN',
         async () => {
-            // sessionId is handled in execute() before calling the handler
             return 'Appium execution environment terminated securely.';
         },
     ],

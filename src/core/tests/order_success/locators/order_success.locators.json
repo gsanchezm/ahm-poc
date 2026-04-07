@@ -1,0 +1,16 @@
+{
+  "orderSuccessScreen": {
+    "web": "[data-testid='order-success']",
+    "mobile": {
+      "android": "~screen-order-success",
+      "ios": "~screen-order-success"
+    }
+  },
+  "orderIdLabel": {
+    "web": "[data-testid='order-id']",
+    "mobile": {
+      "android": "~text-order-id",
+      "ios": "~text-order-id"
+    }
+  }
+}

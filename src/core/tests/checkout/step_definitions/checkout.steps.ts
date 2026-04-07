@@ -35,6 +35,7 @@ Given('the OmniPizza user is logged in as {string}', async function (userAlias: 
   (this as CheckoutWorld).auth = {
     userAlias,
     username: user.username,
+    password: user.password,
     behavior: user.behavior,
     token,
     loginResponse,
@@ -167,6 +168,7 @@ When(
       {
         token,
         username: world.auth!.username,
+        password: world.auth!.password,
         countryCode: market,
         cartItems: world.orderContext!.cartItems,
         countryInfo: world.orderContext!.countryInfo,
@@ -198,9 +200,15 @@ Then(
 
 After(async function () {
   try {
-    // Clear browser state between scenarios without closing the browser
-    await sendIntent('EVALUATE', 'localStorage.clear(); sessionStorage.clear()');
-    await sendIntent('NAVIGATE', process.env.BASE_URL!);
+    const driver = process.env.DRIVER ?? 'playwright';
+    if (driver === 'appium') {
+      // Reset app auth state between scenarios — clears Zustand store and returns to Login screen
+      await sendIntent('DEEP_LINK', 'omnipizza://login?resetSession=true');
+    } else {
+      // Clear browser state between scenarios without closing the browser
+      await sendIntent('EVALUATE', 'localStorage.clear(); sessionStorage.clear()');
+      await sendIntent('NAVIGATE', process.env.BASE_URL!);
+    }
   } catch {
     // Proxy may not be running (e.g. DAO-only test runs)
   }

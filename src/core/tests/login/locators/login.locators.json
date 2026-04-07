@@ -1,0 +1,14 @@
+{
+  "usernameInput": {
+    "web": "[data-testid='input-username']",
+    "mobile": "~input-username"
+  },
+  "passwordInput": {
+    "web": "[data-testid='input-password']",
+    "mobile": "~input-password"
+  },
+  "loginButton": {
+    "web": "[data-testid='btn-login']",
+    "mobile": "~btn-login"
+  }
+}

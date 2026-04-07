@@ -6,6 +6,7 @@ export interface CheckoutWorld {
     auth?: {
         userAlias: string;
         username: string;
+        password: string;
         behavior?: string;
         token?: string;
         loginResponse: LoginResponse;

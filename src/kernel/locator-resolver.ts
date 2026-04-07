@@ -1,9 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-// Target the specific vertical slice. In a fully dynamic AHM runner, 
-// this path could be injected via the DATASET environment variable.
-const LOCATORS_PATH = path.resolve(__dirname, '../core/tests/checkout/locators/checkout.locators.json');
+const TESTS_DIR = path.resolve(__dirname, '../core/tests');
 
 // Memory Cache: Prevents disk I/O and evaluation bottlenecks
 let locatorsCache: Record<string, any> | null = null;
@@ -32,17 +30,38 @@ function getViewport(): string {
     return cachedViewport;
 }
 
+function collectLocatorFiles(dir: string, results: string[] = []): string[] {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const fullPath = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+            collectLocatorFiles(fullPath, results);
+        } else if (entry.isFile() && entry.name.endsWith('.locators.json')) {
+            results.push(fullPath);
+        }
+    }
+    return results;
+}
+
 function loadLocators(): Record<string, any> {
     if (locatorsCache) return locatorsCache;
 
-    try {
-        const rawData = fs.readFileSync(LOCATORS_PATH, 'utf-8');
-        const parsed = JSON.parse(rawData) as Record<string, any>;
-        locatorsCache = parsed;
-        return parsed;
-    } catch (error: any) {
-        throw new Error(`[Proxy] Critical Failure: Cannot load locator artifact at ${LOCATORS_PATH}. ${error.message}`);
+    const files = collectLocatorFiles(TESTS_DIR);
+    if (files.length === 0) {
+        throw new Error(`[Proxy] Critical Failure: No *.locators.json files found under ${TESTS_DIR}`);
     }
+
+    const merged: Record<string, any> = {};
+    for (const filePath of files) {
+        try {
+            const parsed = JSON.parse(fs.readFileSync(filePath, 'utf-8')) as Record<string, any>;
+            Object.assign(merged, parsed);
+        } catch (error: any) {
+            throw new Error(`[Proxy] Critical Failure: Cannot load locator artifact at ${filePath}. ${error.message}`);
+        }
+    }
+
+    locatorsCache = merged;
+    return merged;
 }
 
 export function resolveLocator(logicalKey: string): string {

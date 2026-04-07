@@ -34,7 +34,7 @@ export async function fillDeliveryDetails(
     contact: ContactDetails,
 ): Promise<void> {
     await injectBrowserSession(session);
-    await navigateToCheckout();
+    await navigateToCheckout(session.countryCode, session.token);
     await fillDeliveryAddress(delivery.street, delivery.zip, delivery.suburb);
     await fillContactInfo(contact.name, contact.phone);
 }

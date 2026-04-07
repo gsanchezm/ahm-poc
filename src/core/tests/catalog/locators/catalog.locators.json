@@ -1,0 +1,6 @@
+{
+  "catalogScreen": {
+    "web": "[data-testid='screen-catalog']",
+    "mobile": "~screen-catalog"
+  }
+}

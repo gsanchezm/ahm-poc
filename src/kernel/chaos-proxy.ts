@@ -148,17 +148,22 @@ async function suppressChaos(
 
 const PASSTHROUGH_ACTIONS = new Set(['NAVIGATE', 'TEARDOWN', 'EVALUATE']);
 
+// Actions that use "logicalKey||payload" format — resolve only the key part.
+// TYPE:             logicalKey||text
+// WAIT_FOR_ELEMENT: logicalKey||timeoutMs
+// ASSERT_TEXT:      logicalKey||expectedText
+const COMPOSITE_ACTIONS = new Set(['TYPE', 'WAIT_FOR_ELEMENT', 'ASSERT_TEXT']);
+
 function resolveSelector(actionId: string, rawSelector: string): string {
     const normalized = actionId.toUpperCase();
 
-    // NAVIGATE and TEARDOWN pass raw values (URLs, empty strings) — no locator resolution.
+    // NAVIGATE, TEARDOWN, EVALUATE pass raw values — no locator resolution.
     if (PASSTHROUGH_ACTIONS.has(normalized)) {
         return rawSelector;
     }
 
-    // For TYPE actions, format is "logicalKey||text".
-    // Resolve only the key portion; preserve the text payload.
-    if (normalized === 'TYPE' && rawSelector.includes(ACTION_TYPE_SEPARATOR)) {
+    // Composite actions: resolve only the key portion; preserve the payload after ||.
+    if (COMPOSITE_ACTIONS.has(normalized) && rawSelector.includes(ACTION_TYPE_SEPARATOR)) {
         const sepIndex = rawSelector.indexOf(ACTION_TYPE_SEPARATOR);
         const logicalKey = rawSelector.slice(0, sepIndex);
         const textPayload = rawSelector.slice(sepIndex);

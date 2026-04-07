@@ -2,14 +2,11 @@
   "platformName": "iOS",
   "appium:automationName": "XCUITest",
   "appium:deviceName": "iPhone 16 Pro",
-  "appium:platformVersion": "18.2",
+  "appium:bundleId": "com.omnipizza.app",
   "appium:noReset": true,
-  "appium:fullReset": false,
-  "appium:usePrebuiltWDA": false,
   "appium:newCommandTimeout": 12000,
   "appium:wdaLocalPort": 8101,
-  "appium:wdaLaunchTimeout": 360000,
-  "appium:wdaConnectionTimeout": 360000,
-  "appium:showXcodeLog": true,
-  "appium:autoAcceptAlerts": true
+  "appium:wdaLaunchTimeout": 240000,
+  "appium:wdaConnectionTimeout": 240000,
+  "appium:showXcodeLog": true
 }
