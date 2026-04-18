@@ -37,4 +37,5 @@ assets/
 .agents/
 docs/
 target/
+scripts/
 src/core/tests/checkout/simulations/checkout-rows.generated.ts

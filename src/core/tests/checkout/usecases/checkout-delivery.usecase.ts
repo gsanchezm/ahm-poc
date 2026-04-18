@@ -15,13 +15,6 @@ export interface ContactDetails {
     phone: string;
 }
 
-export interface PaymentDetails {
-    method: string;
-    card?: string;
-    exp?: string;
-    cvv?: string;
-}
-
 export interface OrderExpectation {
     subtotal: string;
     tax: string;
@@ -39,12 +32,17 @@ export async function fillDeliveryDetails(
     await fillContactInfo(contact.name, contact.phone);
 }
 
-export async function submitPayment(payment: PaymentDetails): Promise<void> {
-    await selectPaymentMethod(payment.method);
+export async function choosePaymentMethod(method: string): Promise<void> {
+    await selectPaymentMethod(method);
+}
 
-    if (payment.method === 'Credit Card' && payment.card && payment.exp && payment.cvv) {
-        await fillCardDetails(payment.card, payment.exp, payment.cvv);
-    }
+export async function enterCardDetails(
+    card: string,
+    exp: string,
+    cvv: string,
+    holderName?: string,
+): Promise<void> {
+    await fillCardDetails(card, exp, cvv, holderName);
 }
 
 export async function verifyOrderAccepted(expected: OrderExpectation): Promise<void> {

@@ -6,7 +6,7 @@ The model is realised through the **Test-Oriented Microkernel (TOM)** — a plug
 
 ## Architecture
 
-![AHM — TOM Microkernel Flow & Performance Testing](docs/images/ahm-architecture.png)
+![AHM — TOM Microkernel Flow & Performance Testing](web/images/ahm-architecture.png)
 
 <details>
 <summary>Text diagram</summary>

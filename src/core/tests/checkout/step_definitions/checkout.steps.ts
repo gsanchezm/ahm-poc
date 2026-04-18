@@ -6,7 +6,7 @@ import { LoginDao } from '../dao/login.dao';
 import { OrderingDao } from '../dao/ordering.dao';
 import type { CheckoutWorld } from '../../support/world';
 import { sendIntent, closeClient } from '../../../../kernel/client';
-import { fillDeliveryDetails, submitPayment, verifyOrderAccepted } from '../usecases/checkout-delivery.usecase';
+import { fillDeliveryDetails, choosePaymentMethod, enterCardDetails, verifyOrderAccepted } from '../usecases/checkout-delivery.usecase';
 import { logger } from '../../../../utils/logger';
 
 const log = logger.child({ layer: 'eco-system', domain: 'checkout' });
@@ -176,16 +176,27 @@ When(
       { street, zip, suburb: suburb || undefined },
       { name, phone },
     );
+    world.contact = { name, phone };
     log.info('Delivery details submitted');
   },
 );
 
 When(
-  'they choose payment method {string} with card {string} expiration {string} cvv {string}',
-  async function (paymentMethod: string, card: string, exp: string, cvv: string) {
-    log.info({ paymentMethod, cardLastFour: card ? card.slice(-4) : 'N/A' }, 'Submitting payment');
-    await submitPayment({ method: paymentMethod, card, exp, cvv });
-    log.info({ paymentMethod }, 'Payment submitted');
+  'they choose payment method {string}',
+  async function (paymentMethod: string) {
+    log.info({ paymentMethod }, 'Selecting payment method');
+    await choosePaymentMethod(paymentMethod);
+    log.info({ paymentMethod }, 'Payment method selected');
+  },
+);
+
+When(
+  'they enter card details {string} expiration {string} cvv {string}',
+  async function (card: string, exp: string, cvv: string) {
+    const world = this as CheckoutWorld;
+    log.info({ cardLastFour: card.slice(-4) }, 'Entering card details');
+    await enterCardDetails(card, exp, cvv, world.contact?.name);
+    log.info('Card details entered');
   },
 );
 

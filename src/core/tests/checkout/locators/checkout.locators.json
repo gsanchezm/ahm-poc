@@ -1,10 +1,10 @@
 {
   "checkoutHeader": {
     "web": "h1:has-text(\"Checkout\")",
-    "mobile": "~screen-checkout"
+    "mobile": "~text-section-address"
   },
   "checkoutScreenLanding": {
-    "mobile": "-ios class chain:**/XCUIElementTypeOther[`name == 'screen-checkout' OR name == 'screen-checkout-empty'`]"
+    "mobile": "-ios predicate string:name == 'text-cart-empty' OR name == 'text-section-address'"
   },
   "streetInput": {
     "web": {
@@ -20,7 +20,7 @@
     "web": "[data-testid='zip-code']",
     "mobile": {
       "android": "id=input-zipcode",
-      "ios": "~input-zip-code"
+      "ios": "~input-zipcode"
     }
   },
   "suburbInput": {
@@ -96,6 +96,13 @@
     "mobile": {
       "android": "android=new UiSelector().resourceIdMatches(\"(text-subtotal-label|text-subtotal-value|text-tip-label|text-tax-label|text-tax-value|text-delivery-label|text-delivery-value|text-total-label|text-total-value|text-item-title-item_.*|text-item-size-item_.*|text-item-price-item_.*)\")",
       "ios": "-ios class chain:**/XCUIElementTypeStaticText[`name IN {\"text-subtotal-label\",\"text-subtotal-value\",\"text-tip-label\",\"text-tax-label\",\"text-tax-value\",\"text-delivery-label\",\"text-delivery-value\",\"text-total-label\",\"text-total-value\"} OR name BEGINSWITH \"text-item-title-item_\"`]"
+    }
+  },
+  "tipOptionsList": {
+    "web": "[data-testid^='order-tip-']",
+    "mobile": {
+      "android": "android=new UiSelector().descriptionMatches(\"btn-tip-(0|5|10|15)\")",
+      "ios": "-ios predicate string:name IN {'btn-tip-0','btn-tip-5','btn-tip-10','btn-tip-15'}"
     }
   },
   "placeOrderButton": {

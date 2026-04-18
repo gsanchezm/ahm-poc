@@ -221,6 +221,31 @@ const actionHandlers: ReadonlyMap<string, ActionHandler> = new Map([
         'CLICK',
         async (_driver, selector) => {
             const target = _driver.$(selector);
+            let displayed = await (target.isDisplayed() as Promise<boolean>).catch(() => false);
+            if (!displayed) {
+                // Dismiss the on-screen keyboard before scrolling. hideKeyboard
+                // itself is rejected by WDA on this app, so tap a non-input label
+                // to dismiss — labels don't take focus, so the keyboard closes
+                // without stealing keystrokes (unlike pressing Enter, which would
+                // inject a newline into the previously focused input).
+                for (const id of ['text-navbar-title', 'text-section-address', 'text-section-payment']) {
+                    try {
+                        const anchor = _driver.$(`~${id}`);
+                        if (await (anchor.isDisplayed() as Promise<boolean>).catch(() => false)) {
+                            await (anchor.click() as Promise<void>);
+                            break;
+                        }
+                    } catch { /* try next anchor */ }
+                }
+                await new Promise((r) => setTimeout(r, 500));
+                displayed = await (target.isDisplayed() as Promise<boolean>).catch(() => false);
+            }
+            let attempts = 0;
+            while (!displayed && attempts < 15) {
+                await _driver.execute('mobile: swipe', { direction: 'up' });
+                displayed = await (target.isDisplayed() as Promise<boolean>).catch(() => false);
+                attempts++;
+            }
             await (target.click() as Promise<void>);
             return `Tapped on mobile element: ${selector}`;
         },
@@ -242,6 +267,18 @@ const actionHandlers: ReadonlyMap<string, ActionHandler> = new Map([
             }
 
             const target = _driver.$(selector);
+            // The on-screen keyboard obscures fields below the focused input. The
+            // native hideKeyboard doesn't work in this app (no Done/Return affordance
+            // that WDA recognises), so we swipe up on the screen manually to reveal
+            // fields below. Capped at 15 attempts to bound worst-case latency.
+            let displayed = await (target.isDisplayed() as Promise<boolean>).catch(() => false);
+            let attempts = 0;
+            while (!displayed && attempts < 15) {
+                await _driver.execute('mobile: swipe', { direction: 'up' });
+                displayed = await (target.isDisplayed() as Promise<boolean>).catch(() => false);
+                attempts++;
+            }
+            await (target.click() as Promise<void>);
             await (target.setValue(text) as Promise<void>);
             return `Typed text into mobile element: ${selector}`;
         },

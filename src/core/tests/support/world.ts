@@ -26,5 +26,9 @@ export interface CheckoutWorld {
         unitPrice: number;
         cartItems: CartItemResponse[];
     };
+    contact?: {
+        name: string;
+        phone: string;
+    };
 }
 
