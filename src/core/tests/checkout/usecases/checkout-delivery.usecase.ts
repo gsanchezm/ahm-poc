@@ -7,6 +7,9 @@ import type { CartItemResponse, CountryInfo } from '../dao/ordering.dao';
 
 const SECONDARY_ADDRESS_FIELDS = ['colonia', 'prefectura'] as const;
 
+// Markets where the form has no zip input (prefecture replaces it in the DOM).
+const ZIPLESS_FIELDS = ['prefectura'] as const;
+
 function pickSecondaryAddressField(
     countryInfo: CountryInfo,
     value?: string,
@@ -16,6 +19,12 @@ function pickSecondaryAddressField(
         (SECONDARY_ADDRESS_FIELDS as readonly string[]).includes(f),
     );
     return field ? { locatorKey: `${field}Input`, value } : undefined;
+}
+
+function hasZipField(countryInfo: CountryInfo): boolean {
+    return !countryInfo.required_fields.some((f) =>
+        (ZIPLESS_FIELDS as readonly string[]).includes(f),
+    );
 }
 
 export interface DeliveryDetails {
@@ -37,7 +46,8 @@ export async function fillDeliveryDetails(
     await injectBrowserSession(session);
     await navigateToCheckout(session.countryCode, session.token);
     const secondary = pickSecondaryAddressField(session.countryInfo, delivery.suburb);
-    await fillDeliveryAddress(delivery.street, delivery.zip, secondary);
+    const zip = hasZipField(session.countryInfo) ? delivery.zip : undefined;
+    await fillDeliveryAddress(delivery.street, zip, secondary);
     await fillContactInfo(contact.name, contact.phone);
 }
 

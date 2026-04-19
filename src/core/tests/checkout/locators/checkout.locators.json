@@ -31,7 +31,7 @@
     }
   },
   "prefecturaInput": {
-    "web": "[data-testid='prefectura']",
+    "web": "[data-testid='zip-code']",
     "mobile": {
       "android": "id=input-prefectura",
       "ios": "~input-prefectura"

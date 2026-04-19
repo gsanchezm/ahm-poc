@@ -7,11 +7,13 @@ export interface SecondaryAddressField {
 
 export async function fillDeliveryAddress(
     street: string,
-    zip: string,
+    zip: string | undefined,
     secondary?: SecondaryAddressField,
 ): Promise<void> {
     await sendIntent('TYPE', `streetInput||${street}`);
-    await sendIntent('TYPE', `zipCodeInput||${zip}`);
+    if (zip) {
+        await sendIntent('TYPE', `zipCodeInput||${zip}`);
+    }
     if (secondary) {
         await sendIntent('TYPE', `${secondary.locatorKey}||${secondary.value}`);
     }
