@@ -41,26 +41,26 @@ Performance testing operates in two modes: **TOM-driven** (Gatling gRPC plugin t
 ```mermaid
 graph TD
     %% Define Styles
-    classDef atom fill:#f3e8ff,stroke:#a855f7,stroke-width:2px,color:#4c1d95,rx:10px,ry:10px;
-    classDef molecule fill:#e0e7ff,stroke:#6366f1,stroke-width:2px,color:#3730a3,rx:10px,ry:10px;
-    classDef organism fill:#dcfce7,stroke:#22c55e,stroke-width:2px,color:#166534,rx:10px,ry:10px;
-    classDef ecosystem fill:#fef08a,stroke:#eab308,stroke-width:2px,color:#854d0e,rx:10px,ry:10px;
-    classDef resonance fill:#ffedd5,stroke:#f97316,stroke-width:2px,color:#9a3412,rx:10px,ry:10px;
-    classDef helix fill:#fee2e2,stroke:#ef4444,stroke-width:2px,color:#991b1b,rx:10px,ry:10px;
+    classDef atom fill:#f3e8ff,stroke:#a855f7,stroke-width:2px,color:#4c1d95;
+    classDef molecule fill:#e0e7ff,stroke:#6366f1,stroke-width:2px,color:#3730a3;
+    classDef organism fill:#dcfce7,stroke:#22c55e,stroke-width:2px,color:#166534;
+    classDef ecosystem fill:#fef08a,stroke:#eab308,stroke-width:2px,color:#854d0e;
+    classDef resonance fill:#ffedd5,stroke:#f97316,stroke-width:2px,color:#9a3412;
+    classDef helix fill:#fee2e2,stroke:#ef4444,stroke-width:2px,color:#991b1b;
 
-    Atom["⚛️ Atoms<br/>(gRPC Intents / Primitives)"]:::atom
-    Molecule["🧬 Molecules<br/>(Cross-platform Actions)"]:::molecule
-    Organism["🦠 Organisms<br/>(Business Flow Use Cases)"]:::organism
-    EcoSystem["🌍 Eco-Systems<br/>(BDD Features / Scenarios)"]:::ecosystem
-    Resonance["🌊 Resonance<br/>(DAST / Performance Gatling)"]:::resonance
-    Helix["🌀 Execution Helix<br/>(CI/CD / Microkernel Workflows)"]:::helix
+    Atom["⚛️ Atoms (gRPC Intents / Primitives)"]:::atom
+    Molecule["🧬 Molecules (Cross-platform Actions)"]:::molecule
+    Organism["🦠 Organisms (Business Flow Use Cases)"]:::organism
+    EcoSystem["🌍 Eco-Systems (BDD Features / Scenarios)"]:::ecosystem
+    Resonance["🌊 Resonance (DAST / Performance Gatling)"]:::resonance
+    Helix["🌀 Execution Helix (CI/CD / Microkernel Workflows)"]:::helix
 
-    Atom ==> Molecule
-    Molecule ==> Organism
-    Organism ==> EcoSystem
+    Atom --> Molecule
+    Molecule --> Organism
+    Organism --> EcoSystem
     EcoSystem -.-> Resonance
-    EcoSystem ==> Helix
-    Resonance ==> Helix
+    EcoSystem --> Helix
+    Resonance --> Helix
 ```
 
 | AHM Layer | Folder | Purpose |
