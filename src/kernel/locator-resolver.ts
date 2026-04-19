@@ -3,17 +3,13 @@ import * as path from 'path';
 
 const TESTS_DIR = path.resolve(__dirname, '../core/tests');
 
-// Memory Cache: Prevents disk I/O and evaluation bottlenecks
 let locatorsCache: Record<string, any> | null = null;
-let cachedPlatform: string | null = null;
-let cachedViewport: string | null = null;
 
 function resolveMobile(node: any, os: 'android' | 'ios'): string | undefined {
     if (typeof node.mobile === 'string') return node.mobile;
     return node.mobile?.[os];
 }
 
-// Strategy Map for platform-specific locator resolution (O(1) lookup instead of if/else chains)
 const LOCATOR_STRATEGIES: Record<string, (node: any, viewport: string) => string | undefined> = {
     web: (node, viewport) => typeof node.web === 'string' ? node.web : node.web?.[viewport],
     android: (node) => resolveMobile(node, 'android'),
@@ -21,13 +17,11 @@ const LOCATOR_STRATEGIES: Record<string, (node: any, viewport: string) => string
 };
 
 function getPlatform(): string {
-    if (!cachedPlatform) cachedPlatform = (process.env.PLATFORM || 'web').toLowerCase();
-    return cachedPlatform;
+    return (process.env.PLATFORM || 'web').toLowerCase();
 }
 
 function getViewport(): string {
-    if (!cachedViewport) cachedViewport = (process.env.VIEWPORT || 'desktop').toLowerCase();
-    return cachedViewport;
+    return (process.env.VIEWPORT || 'desktop').toLowerCase();
 }
 
 function collectLocatorFiles(dir: string, results: string[] = []): string[] {
