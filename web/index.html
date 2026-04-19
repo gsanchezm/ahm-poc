@@ -460,33 +460,30 @@
         </div>
       </div>
 
-      <div class="code-card">
-        <div class="code-titlebar">
-          <span class="dot dot-red"></span>
-          <span class="dot dot-amber"></span>
-          <span class="dot dot-green"></span>
-          <span class="code-filename">checkout.locators.json</span>
-        </div>
-        <div class="code-body">
-<span class="c-muted">{</span><br>
-&nbsp;&nbsp;<span class="c-key">"streetInput"</span><span class="c-muted">:</span> <span class="c-muted">{</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-key">"web"</span><span class="c-muted">:</span> <span class="c-muted">{</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-key">"desktop"</span><span class="c-muted">:</span> <span class="c-str">"[data-testid='address-desktop']"</span><span class="c-muted">,</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-key">"responsive"</span><span class="c-muted">:</span> <span class="c-str">"[data-testid='address-responsive']"</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-muted">},</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-key">"mobile"</span><span class="c-muted">:</span> <span class="c-muted">{</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-key">"android"</span><span class="c-muted">:</span> <span class="c-str">"UiSelector().description('input-address')"</span><span class="c-muted">,</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-key">"ios"</span><span class="c-muted">:</span> <span class="c-str">"~input-address"</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-muted">}</span><br>
-&nbsp;&nbsp;<span class="c-muted">},</span><br>
-&nbsp;&nbsp;<span class="c-key">"placeOrderButton"</span><span class="c-muted">:</span> <span class="c-muted">{</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-key">"web"</span><span class="c-muted">:</span> <span class="c-muted">{</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-key">"desktop"</span><span class="c-muted">:</span> <span class="c-str">"[data-testid='place-order-btn-desktop']"</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-muted">},</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-key">"mobile"</span><span class="c-muted">:</span> <span class="c-str">"~btn-place-order"</span><br>
-&nbsp;&nbsp;<span class="c-muted">}</span><br>
-<span class="c-muted">}</span>
-        </div>
+      <div class="code-card" style="padding: 32px; display: flex; justify-content: center; align-items: center;">
+        <pre class="mermaid" style="background: transparent; margin: 0;">
+graph TD
+    classDef atom fill:#f3e8ff,stroke:#a855f7,stroke-width:2px,color:#1b003a,rx:8px,ry:8px;
+    classDef molecule fill:#e0e7ff,stroke:#6366f1,stroke-width:2px,color:#1b003a,rx:8px,ry:8px;
+    classDef organism fill:#dcfce7,stroke:#22c55e,stroke-width:2px,color:#166534,rx:8px,ry:8px;
+    classDef ecosystem fill:#fef08a,stroke:#eab308,stroke-width:2px,color:#854d0e,rx:8px,ry:8px;
+    classDef resonance fill:#ffedd5,stroke:#f97316,stroke-width:2px,color:#9a3412,rx:8px,ry:8px;
+    classDef helix fill:#fee2e2,stroke:#ef4444,stroke-width:2px,color:#991b1b,rx:8px,ry:8px;
+
+    Atom["Atoms<br/>(gRPC Intents / Primitives)"]:::atom
+    Molecule["Molecules<br/>(Cross-platform Actions)"]:::molecule
+    Organism["Organisms<br/>(Business Flow)"]:::organism
+    EcoSystem["Eco-Systems<br/>(BDD Features)"]:::ecosystem
+    Resonance["Resonance<br/>(Performance)"]:::resonance
+    Helix["Execution Helix<br/>(CI/CD)"]:::helix
+
+    Atom ==> Molecule
+    Molecule ==> Organism
+    Organism ==> EcoSystem
+    EcoSystem -.-> Resonance
+    EcoSystem ==> Helix
+    Resonance ==> Helix
+        </pre>
       </div>
 
     </div>
@@ -576,31 +573,48 @@
     <h2 class="section-title">Atomic Design Layers & CI/CD.</h2>
     <p class="section-sub">A formal abstraction of process execution constraints from the granular gRPC Atoms up to the continuous Execution Helix.</p>
     
-    <div class="arch-container" style="margin-top: 48px; background: var(--surface-2); border-radius: var(--radius); padding: 32px; border: 1px solid var(--border); box-shadow: 0 12px 48px rgba(0,0,0,.4); text-align: center;">
-      <pre class="mermaid">
-graph TD
-    %% Define Styles
-    classDef atom fill:#f3e8ff,stroke:#a855f7,stroke-width:2px,color:#1b003a,rx:10px,ry:10px;
-    classDef molecule fill:#e0e7ff,stroke:#6366f1,stroke-width:2px,color:#1b003a,rx:10px,ry:10px;
-    classDef organism fill:#dcfce7,stroke:#22c55e,stroke-width:2px,color:#166534,rx:10px,ry:10px;
-    classDef ecosystem fill:#fef08a,stroke:#eab308,stroke-width:2px,color:#854d0e,rx:10px,ry:10px;
-    classDef resonance fill:#ffedd5,stroke:#f97316,stroke-width:2px,color:#9a3412,rx:10px,ry:10px;
-    classDef helix fill:#fee2e2,stroke:#ef4444,stroke-width:2px,color:#991b1b,rx:10px,ry:10px;
-
-    Atom["Atoms<br/>(gRPC Intents / Primitives)"]:::atom
-    Molecule["Molecules<br/>(Cross-platform Actions)"]:::molecule
-    Organism["Organisms<br/>(Business Flow Use Cases)"]:::organism
-    EcoSystem["Eco-Systems<br/>(BDD Features / Scenarios)"]:::ecosystem
-    Resonance["Resonance<br/>(DAST / Performance Gatling)"]:::resonance
-    Helix["Execution Helix<br/>(CI/CD / Orchestration)"]:::helix
-
-    Atom ==> Molecule
-    Molecule ==> Organism
-    Organism ==> EcoSystem
-    EcoSystem -.-> Resonance
-    EcoSystem ==> Helix
-    Resonance ==> Helix
-      </pre>
+    <div class="cicd-table" style="margin-top: 48px; overflow-x: auto; background: var(--surface-2); border-radius: var(--radius); border: 1px solid var(--border);">
+      <table style="width: 100%; text-align: left; border-collapse: collapse;">
+        <thead>
+          <tr style="border-bottom: 2px solid var(--border);">
+            <th style="padding: 18px; font-size: .9rem;">AHM Layer</th>
+            <th style="padding: 18px; font-size: .9rem;">Folder</th>
+            <th style="padding: 18px; font-size: .9rem;">Purpose</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom: 1px solid var(--border);">
+            <td style="padding: 18px; font-size: .88rem; font-weight: 700; color: #c084fc;">Atoms</td>
+            <td style="padding: 18px; color: var(--text-muted); font-family: var(--font-mono);">kernel/client.ts</td>
+            <td style="padding: 18px; font-size: .88rem; color: var(--text-muted);">indivisible gRPC primitives</td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--border);">
+            <td style="padding: 18px; font-size: .88rem; font-weight: 700; color: #818cf8;">Molecules</td>
+            <td style="padding: 18px; color: var(--text-muted); font-family: var(--font-mono);">[domain]/actions/</td>
+            <td style="padding: 18px; font-size: .88rem; color: var(--text-muted);">Grouped atomic intents (cross-platform reusable)</td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--border);">
+            <td style="padding: 18px; font-size: .88rem; font-weight: 700; color: #4ade80;">Organisms</td>
+            <td style="padding: 18px; color: var(--text-muted); font-family: var(--font-mono);">[domain]/usecases/</td>
+            <td style="padding: 18px; font-size: .88rem; color: var(--text-muted);">Orchestrate actions into business flows</td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--border);">
+            <td style="padding: 18px; font-size: .88rem; font-weight: 700; color: #facc15;">Eco-Systems</td>
+            <td style="padding: 18px; color: var(--text-muted); font-family: var(--font-mono);">[domain]/features/ + step_definitions/</td>
+            <td style="padding: 18px; font-size: .88rem; color: var(--text-muted);">BDD scenarios composing use cases + DAOs</td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--border);">
+            <td style="padding: 18px; font-size: .88rem; font-weight: 700; color: #fb923c;">Resonance</td>
+            <td style="padding: 18px; color: var(--text-muted); font-family: var(--font-mono);">[domain]/simulations/</td>
+            <td style="padding: 18px; font-size: .88rem; color: var(--text-muted);">Gatling simulations co-located with their feature, driven by Examples data</td>
+          </tr>
+          <tr>
+            <td style="padding: 18px; font-size: .88rem; font-weight: 700; color: #f87171;">Execution Helix</td>
+            <td style="padding: 18px; color: var(--text-muted); font-family: var(--font-mono);">.github/workflows/</td>
+            <td style="padding: 18px; font-size: .88rem; color: var(--text-muted);">CI/CD pipelines uniting all layers into parallel, isolated orbits governed by math constraints</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </div>
 </section>
