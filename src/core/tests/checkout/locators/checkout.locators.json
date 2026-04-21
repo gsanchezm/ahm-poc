@@ -33,8 +33,8 @@
   "prefecturaInput": {
     "web": "[data-testid='zip-code']",
     "mobile": {
-      "android": "id=input-prefectura",
-      "ios": "~input-prefectura"
+      "android": "id=input-zipcode",
+      "ios": "~input-zipcode"
     }
   },
   "fullNameInput": {

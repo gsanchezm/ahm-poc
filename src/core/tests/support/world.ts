@@ -1,6 +1,5 @@
-import { CountryCode } from '../../shared/enums/country-code.enum';
 import type { LoginResponse } from '../checkout/dao/login.dao';
-import type { CartItemResponse, CountryInfo } from '../checkout/dao/ordering.dao';
+import type { CartItemResponse, CountryInfo, CountryCode } from '../checkout/dao/ordering.dao';
 
 export interface CheckoutWorld {
     auth?: {

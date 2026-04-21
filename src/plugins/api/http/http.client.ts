@@ -7,7 +7,9 @@ import {
     QueryParamValue,
 } from './http.types';
 
-const DEFAULT_TIMEOUT_MS = 10_000;
+// 60s covers Render free-tier cold starts (~30–45s after idle) that otherwise
+// abort the first login fetch of a scenario with AbortError.
+const DEFAULT_TIMEOUT_MS = 60_000;
 
 export class HttpClient {
     private readonly baseUrl?: string;

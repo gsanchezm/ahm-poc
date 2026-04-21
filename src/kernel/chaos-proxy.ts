@@ -148,7 +148,7 @@ async function suppressChaos(
 
 // --- 7. TYPE-aware Locator Resolution ---
 
-const PASSTHROUGH_ACTIONS = new Set(['NAVIGATE', 'TEARDOWN', 'EVALUATE']);
+const PASSTHROUGH_ACTIONS = new Set(['NAVIGATE', 'TEARDOWN', 'EVALUATE', 'HIDE_KEYBOARD']);
 
 // Actions that use "logicalKey||payload" format — resolve only the key part.
 // TYPE:             logicalKey||text

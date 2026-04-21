@@ -1,6 +1,9 @@
 import { After, AfterAll, Given, Then, When, setDefaultTimeout } from '@cucumber/cucumber';
 
-setDefaultTimeout(180_000);
+// 10 min covers a cold WDA build on first scenario (~5 min) plus the place-order
+// API roundtrip on Render free tier; subsequent scenarios reuse the session and
+// finish in well under a minute.
+setDefaultTimeout(600_000);
 import { UsersDataSource } from '../../../test-data/users.data-source';
 import { LoginDao } from '../dao/login.dao';
 import { OrderingDao } from '../dao/ordering.dao';

@@ -3,7 +3,7 @@
     "web": "[data-testid='order-success']",
     "mobile": {
       "android": "~screen-order-success",
-      "ios": "~screen-order-success"
+      "ios": "~btn-order-details"
     }
   },
   "orderIdLabel": {

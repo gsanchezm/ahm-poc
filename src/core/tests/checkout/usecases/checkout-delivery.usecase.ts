@@ -5,10 +5,26 @@ import { selectPaymentMethod, fillCardDetails } from '../actions/checkout-paymen
 import { placeOrder, verifyOrderAccepted as verifyOrderOnUI } from '../actions/checkout-order.molecule';
 import type { CartItemResponse, CountryInfo } from '../dao/ordering.dao';
 
-const SECONDARY_ADDRESS_FIELDS = ['colonia', 'prefectura'] as const;
+// Fields rendered alongside the zipcode slot in the checkout form.
+// Today only MX's `colonia` lives there; JP's `prefectura` is NOT a secondary
+// — it replaces the zip in the single "market-specific address" slot.
+const SECONDARY_ADDRESS_FIELDS = ['colonia'] as const;
 
-// Markets where the form has no zip input (prefecture replaces it in the DOM).
-const ZIPLESS_FIELDS = ['prefectura'] as const;
+// The mobile UI renders a single TextInput (testID=`input-zipcode`) for the
+// market-specific address field regardless of whether the backend names it
+// `zip_code` / `plz` / `prefectura`. Route the feature-file value that
+// corresponds to that slot — JP's prefecture arrives via the `suburb`
+// column, everyone else's postal code arrives via the `zip` column.
+function pickZipSlotValue(
+    countryInfo: CountryInfo,
+    delivery: DeliveryDetails,
+): string | undefined {
+    const fields = countryInfo.required_fields ?? [];
+    if (fields.includes('prefectura')) {
+        return delivery.suburb || undefined;
+    }
+    return delivery.zip || undefined;
+}
 
 function pickSecondaryAddressField(
     countryInfo: CountryInfo,
@@ -19,12 +35,6 @@ function pickSecondaryAddressField(
         (SECONDARY_ADDRESS_FIELDS as readonly string[]).includes(f),
     );
     return field ? { locatorKey: `${field}Input`, value } : undefined;
-}
-
-function hasZipField(countryInfo: CountryInfo): boolean {
-    return !countryInfo.required_fields.some((f) =>
-        (ZIPLESS_FIELDS as readonly string[]).includes(f),
-    );
 }
 
 export interface DeliveryDetails {
@@ -46,8 +56,8 @@ export async function fillDeliveryDetails(
     await injectBrowserSession(session);
     await navigateToCheckout(session.countryCode, session.token);
     const secondary = pickSecondaryAddressField(session.countryInfo, delivery.suburb);
-    const zip = hasZipField(session.countryInfo) ? delivery.zip : undefined;
-    await fillDeliveryAddress(delivery.street, zip, secondary);
+    const zipSlot = pickZipSlotValue(session.countryInfo, delivery);
+    await fillDeliveryAddress(delivery.street, zipSlot, secondary);
     await fillContactInfo(contact.name, contact.phone);
 }
 

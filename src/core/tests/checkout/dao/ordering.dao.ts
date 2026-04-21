@@ -93,7 +93,9 @@ export interface OrderingDaoOptions {
 
 export { CountryCode };
 
-const DEFAULT_TIMEOUT_MS = 10_000;
+// Overrides HttpClient's default. Must stay ≥45s — Render free tier cold
+// starts take 30–45s when the instance has been idle.
+const DEFAULT_TIMEOUT_MS = 60_000;
 
 export class OrderingDao {
     private readonly httpClient: HttpClient;
