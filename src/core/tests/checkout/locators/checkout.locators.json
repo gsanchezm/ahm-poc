@@ -4,7 +4,10 @@
     "mobile": "~text-section-address"
   },
   "checkoutScreenLanding": {
-    "mobile": "-ios predicate string:name == 'text-cart-empty' OR name == 'text-section-address'"
+    "mobile": {
+      "android": "android=new UiSelector().resourceIdMatches(\"(text-cart-empty|text-section-address)\")",
+      "ios": "-ios predicate string:name == 'text-cart-empty' OR name == 'text-section-address'"
+    }
   },
   "streetInput": {
     "web": {
@@ -19,21 +22,21 @@
   "zipCodeInput": {
     "web": "[data-testid='zip-code']",
     "mobile": {
-      "android": "id=input-zipcode",
+      "android": "~input-zipcode",
       "ios": "~input-zipcode"
     }
   },
   "coloniaInput": {
     "web": "[data-testid='colonia']",
     "mobile": {
-      "android": "id=input-colonia",
+      "android": "~input-colonia",
       "ios": "~input-colonia"
     }
   },
   "prefecturaInput": {
     "web": "[data-testid='zip-code']",
     "mobile": {
-      "android": "id=input-zipcode",
+      "android": "~input-zipcode",
       "ios": "~input-zipcode"
     }
   },
@@ -50,7 +53,7 @@
       "desktop": "[data-testid='phone-desktop']"
     },
     "mobile": {
-      "android": "id=input-phone",
+      "android": "~input-phone",
       "ios": "~input-phone"
     }
   },
@@ -79,7 +82,7 @@
   "cardNumberInput": {
     "web": "[data-testid='card-number']",
     "mobile": {
-      "android": "~input-card-number",
+      "android": "android=new UiSelector().className(\"android.widget.EditText\").description(\"input-card-number\")",
       "ios": "-ios predicate string:type == 'XCUIElementTypeTextField' AND name == 'input-card-number'"
     }
   },

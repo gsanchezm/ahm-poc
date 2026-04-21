@@ -157,6 +157,28 @@ async function teardown(sessionId: string): Promise<void> {
     }
 }
 
+async function dismissAndroidSystemDialog(driver: Browser): Promise<void> {
+    if (PLATFORM !== 'android') return;
+
+    const waitSelectors = [
+        'id=android:id/aerr_wait',
+        'android=new UiSelector().text("Wait")',
+        'android=new UiSelector().text("Esperar")',
+    ];
+
+    for (const selector of waitSelectors) {
+        try {
+            const button = driver.$(selector);
+            if (await (button.isDisplayed() as Promise<boolean>).catch(() => false)) {
+                await (button.click() as Promise<void>);
+                await new Promise((r) => setTimeout(r, 500));
+                logger.warn({ selector }, '[Appium] Dismissed Android ANR dialog with Wait');
+                return;
+            }
+        } catch { /* try next selector */ }
+    }
+}
+
 // --- Scroll Helpers ---
 
 /**
@@ -840,5 +862,8 @@ export async function execute(
     }
 
     const driver = await ensureSession(sessionId);
-    return handler(driver, targetSelector);
+    await dismissAndroidSystemDialog(driver);
+    const result = await handler(driver, targetSelector);
+    await dismissAndroidSystemDialog(driver);
+    return result;
 }
