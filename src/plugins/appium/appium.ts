@@ -461,7 +461,7 @@ function typedValuesMatch(expected: string, actual: string): boolean {
 }
 
 function shouldVerifyTypedText(text: string): boolean {
-    return PLATFORM === 'ios' && /[A-Za-z\s]/.test(text);
+    return PLATFORM === 'ios' && /[A-Za-z]/.test(text);
 }
 
 async function clearAndFocus(target: ReturnType<Browser['$']>): Promise<void> {
@@ -660,23 +660,11 @@ const actionHandlers: ReadonlyMap<string, ActionHandler> = new Map([
             }
 
             const target = _driver.$(selector);
-            // Scroll until the target's bottom edge sits above the keyboard
-            // top edge — `isTrulyDisplayed` corrects XCUI's over-eager
-            // `isDisplayed` result so we don't exit the loop for an input
-            // that is actually occluded by the keyboard. Using programmatic
-            // `mobile: scroll` (inside swipeUp) avoids touch events that
-            // would re-focus a grazed TextInput. If scrolling can't clear
-            // the keyboard (form too short for the viewport), dismiss the
-            // keyboard as a last resort so the click lands on the input
-            // instead of a keyboard key.
-            let displayed = await isTrulyDisplayed(_driver, target);
-            let attempts = 0;
-            while (!displayed && attempts < 15) {
-                await swipeUp(_driver);
-                displayed = await isTrulyDisplayed(_driver, target);
-                attempts++;
+            await scrollIntoViewSafe(_driver, target, selector, 5);
+            if (!(await isFrameInTapZone(_driver, target))) {
+                await dismissKeyboard(_driver);
+                await scrollIntoViewSafe(_driver, target, selector, 3);
             }
-            if (!displayed) await dismissKeyboard(_driver);
             await (target.click() as Promise<void>);
             await typeTextIntoTarget(_driver, target, text);
             await dismissKeyboard(_driver);
