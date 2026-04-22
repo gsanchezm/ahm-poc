@@ -67,15 +67,15 @@ jobs:
       || inputs.platform == 'api'
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v5
       - name: Cache pnpm store
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.pnpm-store
           key: pnpm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
@@ -123,15 +123,15 @@ jobs:
         if: always()
         run: |
           RESULTS_DIR=$(ls -d results/* 2>/dev/null | head -n 1)
-          if [ -n "$RESULTS_DIR" ]; then
-            npx ts-node scripts/parse-telemetry.ts "$RESULTS_DIR"
-          else
-            echo "No results directory found."
+          if [ -z "$RESULTS_DIR" ]; then
+            echo "No results directory found. Telemetry is required for AHM runs."
+            exit 1
           fi
+          npx ts-node scripts/parse-telemetry.ts "$RESULTS_DIR"
 
       - name: Upload Telemetry Artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ahm-telemetry-${{ github.job }}-${{ github.run_id }}
           path: results/
@@ -149,15 +149,15 @@ jobs:
       || inputs.platform == 'web'
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v5
       - name: Cache pnpm store
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.pnpm-store
           key: pnpm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
@@ -215,15 +215,15 @@ jobs:
         if: always()
         run: |
           RESULTS_DIR=$(ls -d results/* 2>/dev/null | head -n 1)
-          if [ -n "$RESULTS_DIR" ]; then
-            npx ts-node scripts/parse-telemetry.ts "$RESULTS_DIR"
-          else
-            echo "No results directory found."
+          if [ -z "$RESULTS_DIR" ]; then
+            echo "No results directory found. Telemetry is required for AHM runs."
+            exit 1
           fi
+          npx ts-node scripts/parse-telemetry.ts "$RESULTS_DIR"
 
       - name: Upload Telemetry Artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ahm-telemetry-${{ github.job }}-${{ github.run_id }}
           path: results/
@@ -241,15 +241,15 @@ jobs:
       || inputs.platform == 'web'
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v5
       - name: Cache pnpm store
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.pnpm-store
           key: pnpm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
@@ -307,15 +307,15 @@ jobs:
         if: always()
         run: |
           RESULTS_DIR=$(ls -d results/* 2>/dev/null | head -n 1)
-          if [ -n "$RESULTS_DIR" ]; then
-            npx ts-node scripts/parse-telemetry.ts "$RESULTS_DIR"
-          else
-            echo "No results directory found."
+          if [ -z "$RESULTS_DIR" ]; then
+            echo "No results directory found. Telemetry is required for AHM runs."
+            exit 1
           fi
+          npx ts-node scripts/parse-telemetry.ts "$RESULTS_DIR"
 
       - name: Upload Telemetry Artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ahm-telemetry-${{ github.job }}-${{ github.run_id }}
           path: results/
@@ -332,7 +332,7 @@ jobs:
       && (inputs.platform == 'all' || inputs.platform == 'android')
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Enable KVM
         run: |
@@ -342,13 +342,13 @@ jobs:
           sudo udevadm trigger --name-match=kvm
 
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v5
       - name: Cache pnpm store
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.pnpm-store
           key: pnpm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
@@ -454,15 +454,15 @@ jobs:
         if: always()
         run: |
           RESULTS_DIR=$(ls -d results/* 2>/dev/null | head -n 1)
-          if [ -n "$RESULTS_DIR" ]; then
-            npx ts-node scripts/parse-telemetry.ts "$RESULTS_DIR"
-          else
-            echo "No results directory found."
+          if [ -z "$RESULTS_DIR" ]; then
+            echo "No results directory found. Telemetry is required for AHM runs."
+            exit 1
           fi
+          npx ts-node scripts/parse-telemetry.ts "$RESULTS_DIR"
 
       - name: Upload Telemetry Artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ahm-telemetry-${{ github.job }}-${{ github.run_id }}
           path: results/
@@ -483,15 +483,15 @@ jobs:
       && (inputs.platform == 'all' || inputs.platform == 'ios')
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v5
       - name: Cache pnpm store
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.pnpm-store
           key: pnpm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
@@ -584,15 +584,15 @@ jobs:
         if: always()
         run: |
           RESULTS_DIR=$(ls -d results/* 2>/dev/null | head -n 1)
-          if [ -n "$RESULTS_DIR" ]; then
-            npx ts-node scripts/parse-telemetry.ts "$RESULTS_DIR"
-          else
-            echo "No results directory found."
+          if [ -z "$RESULTS_DIR" ]; then
+            echo "No results directory found. Telemetry is required for AHM runs."
+            exit 1
           fi
+          npx ts-node scripts/parse-telemetry.ts "$RESULTS_DIR"
 
       - name: Upload Telemetry Artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ahm-telemetry-${{ github.job }}-${{ github.run_id }}
           path: results/
@@ -610,21 +610,21 @@ jobs:
           && (inputs.platform == 'all' || inputs.platform == 'perf'))
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v5
       - name: Cache pnpm store
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.pnpm-store
           key: pnpm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: pnpm-${{ runner.os }}-
       - name: Cache Gatling JRE bundle
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: node_modules/@gatling.io/cli/.gatling
           key: gatling-jre-${{ runner.os }}-${{ hashFiles('node_modules/@gatling.io/cli/package.json') }}
@@ -641,8 +641,9 @@ jobs:
 
       - name: Upload Gatling HTML report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: gatling-report-${{ inputs.perf_profile || 'smoke' }}-${{ github.run_id }}
           path: target/gatling/
+          if-no-files-found: ignore
           retention-days: 30
