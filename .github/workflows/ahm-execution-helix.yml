@@ -368,6 +368,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Install Android platform tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y android-sdk-platform-tools
+          adb version
+
       - name: Download Android app artifact
         run: |
           mkdir -p assets/apps/android
