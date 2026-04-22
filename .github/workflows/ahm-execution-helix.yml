@@ -85,7 +85,11 @@ jobs:
 
       - name: Start MinIO Telemetry Storage
         run: |
-          docker-compose -f infrastructure/minio-compose.yml up -d
+          if docker compose version >/dev/null 2>&1; then
+            docker compose -f infrastructure/minio-compose.yml up -d
+          else
+            docker-compose -f infrastructure/minio-compose.yml up -d
+          fi
           sleep 5
 
       - name: Start proxy + API plugin
@@ -165,7 +169,11 @@ jobs:
 
       - name: Start MinIO Telemetry Storage
         run: |
-          docker-compose -f infrastructure/minio-compose.yml up -d
+          if docker compose version >/dev/null 2>&1; then
+            docker compose -f infrastructure/minio-compose.yml up -d
+          else
+            docker-compose -f infrastructure/minio-compose.yml up -d
+          fi
           sleep 5
 
       - name: Start proxy + plugins
@@ -253,7 +261,11 @@ jobs:
 
       - name: Start MinIO Telemetry Storage
         run: |
-          docker-compose -f infrastructure/minio-compose.yml up -d
+          if docker compose version >/dev/null 2>&1; then
+            docker compose -f infrastructure/minio-compose.yml up -d
+          else
+            docker-compose -f infrastructure/minio-compose.yml up -d
+          fi
           sleep 5
 
       - name: Start proxy + plugins
@@ -353,7 +365,11 @@ jobs:
 
       - name: Start MinIO Telemetry Storage
         run: |
-          docker-compose -f infrastructure/minio-compose.yml up -d
+          if docker compose version >/dev/null 2>&1; then
+            docker compose -f infrastructure/minio-compose.yml up -d
+          else
+            docker-compose -f infrastructure/minio-compose.yml up -d
+          fi
           sleep 5
 
       - name: Start Android emulator (docker-android)
