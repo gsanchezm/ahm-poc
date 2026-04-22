@@ -37,9 +37,9 @@ on:
       android_api_level:
         description: 'Android API level'
         required: false
-        default: '34'
+        default: '33'
         type: choice
-        options: ['28', '29', '30', '31', '32', '33', '34']
+        options: ['28', '29', '30', '31', '32', '33']
 
 # ---------------------------------------------------------------------------
 # Shared environment — inherited by every job
@@ -392,7 +392,7 @@ jobs:
             --device /dev/kvm \
             -p 5554:5554 \
             -p 5555:5555 \
-            -e API_LEVEL=${{ inputs.android_api_level || '34' }} \
+            -e API_LEVEL=${{ inputs.android_api_level || '33' }} \
             -e IMG_TYPE=google_apis \
             -e ARCHITECTURE=x86_64 \
             -e DEVICE_ID=pixel \
@@ -400,7 +400,7 @@ jobs:
             -e CORES=2 \
             -e DISABLE_ANIMATION=1 \
             -e SKIP_AUTH=1 \
-            halimqarroum/docker-android:api-${{ inputs.android_api_level || '34' }}
+            halimqarroum/docker-android:api-${{ inputs.android_api_level || '33' }}
 
       - name: Start Appium server
         run: |
