@@ -447,6 +447,7 @@ jobs:
           PLUGIN_API: 'true'
 
       - name: Run E2E tests
+        id: android_tests
         run: pnpm test --tags '@android'
         env:
           API_BASE_URL: ${{ secrets.API_BASE_URL }}
@@ -462,8 +463,18 @@ jobs:
           MINIO_ACCESS_KEY: minioadmin
           MINIO_SECRET_KEY: minioadmin
 
+      - name: Show Android emulator logs
+        if: failure()
+        run: |
+          docker ps -a --filter name=android-emulator
+          if docker ps -a --format '{{.Names}}' | grep -qx android-emulator; then
+            docker logs --tail 200 android-emulator
+          else
+            echo "android-emulator container was not created."
+          fi
+
       - name: Parse JSONL to CSV Artifacts
-        if: always()
+        if: always() && steps.android_tests.outcome != 'skipped'
         run: |
           RESULTS_DIR=$(ls -d results/* 2>/dev/null | head -n 1)
           if [ -z "$RESULTS_DIR" ]; then
@@ -482,7 +493,7 @@ jobs:
 
       - name: Stop emulator
         if: always()
-        run: docker stop android-emulator && docker rm android-emulator
+        run: docker rm -f android-emulator || true
 
   # ---------------------------------------------------------------------------
   # Job 5: iOS E2E
