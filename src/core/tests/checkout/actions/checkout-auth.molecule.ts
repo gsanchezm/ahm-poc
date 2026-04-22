@@ -17,8 +17,10 @@ export async function injectBrowserSession(session: BrowserSessionState): Promis
     // On mobile (React Native), Zustand state is ephemeral — no persistence layer.
     // The auth token is injected via the deep link accessToken param (handled by
     // useDeepLinkParams in OmniPizza), so no UI login or localStorage manipulation needed.
-    if (process.env.DRIVER === 'appium') {
-        log.info({ countryCode: session.countryCode }, 'Skipping session injection — token injected via deep link accessToken param');
+    // On API driver, there is no browser to inject into — the gRPC plugin talks straight to the backend.
+    const driver = process.env.DRIVER;
+    if (driver === 'appium' || driver === 'api') {
+        log.info({ countryCode: session.countryCode, driver }, 'Skipping session injection — no browser to seed');
         return;
     }
 
