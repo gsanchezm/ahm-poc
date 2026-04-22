@@ -398,15 +398,15 @@ jobs:
             -e DEVICE_ID=pixel \
             -e MEMORY=4096 \
             -e CORES=2 \
-            -e DISABLE_ANIMATION=1 \
+            -e DISABLE_ANIMATION=true \
+            -e DISABLE_HIDDEN_POLICY=true \
             -e SKIP_AUTH=1 \
             halimqarroum/docker-android:api-${{ inputs.android_api_level || '33' }}
 
       - name: Start Appium server
         run: |
-          npm install -g appium@latest
-          appium driver install uiautomator2
-          appium --relaxed-security &
+          pnpm exec appium driver install uiautomator2
+          pnpm exec appium --relaxed-security &
           sleep 5
 
       - name: Wait for emulator to be ready
@@ -561,9 +561,8 @@ jobs:
 
       - name: Start Appium server
         run: |
-          npm install -g appium@latest
-          appium driver install xcuitest
-          appium --relaxed-security &
+          pnpm exec appium driver install xcuitest
+          pnpm exec appium --relaxed-security &
           sleep 5
 
       - name: Start proxy + Appium plugin
