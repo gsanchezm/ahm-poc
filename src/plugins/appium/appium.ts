@@ -414,6 +414,37 @@ async function dismissKeyboard(driver: Browser): Promise<void> {
 }
 
 /**
+ * Android: atomic scroll-until-visible using UiAutomator's native UiScrollable.
+ * Unlike a full-screen swipe, this advances the scrollable container exactly
+ * enough to surface the target in the accessibility tree, so long RN
+ * checkout forms don't overshoot past `input-card-holder` or `btn-place-order`.
+ * Returns true when the selector was resolved to a UiSelector expression and
+ * the native scrollIntoView call succeeded.
+ */
+async function scrollIntoViewAndroid(
+    driver: Browser,
+    selector: string,
+): Promise<boolean> {
+    if (PLATFORM !== 'android') return false;
+
+    let innerSelector: string | undefined;
+    if (selector.startsWith('~')) {
+        innerSelector = `new UiSelector().description("${selector.slice(1)}")`;
+    } else if (selector.startsWith('android=')) {
+        innerSelector = selector.slice('android='.length);
+    }
+    if (!innerSelector) return false;
+
+    const uiScrollable = `new UiScrollable(new UiSelector().scrollable(true).instance(0)).scrollIntoView(${innerSelector})`;
+    try {
+        await driver.$(`android=${uiScrollable}`);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+/**
  * Scroll `target` into genuinely visible territory. Uses `isTrulyDisplayed`
  * rather than `target.isDisplayed()` so an input occluded by the keyboard
  * doesn't satisfy the check — XCUI returns true for any element inside the
@@ -430,6 +461,14 @@ async function scrollIntoViewSafe(
     maxAttempts = 3,
 ): Promise<void> {
     if (await isFrameInTapZone(driver, target)) return;
+
+    // Android: one precise UiScrollable call replaces the full-screen swipe
+    // loop, which was overshooting and pushing card/place-order off-screen.
+    if (PLATFORM === 'android') {
+        if (await scrollIntoViewAndroid(driver, selector)) {
+            if (await isFrameInTapZone(driver, target)) return;
+        }
+    }
 
     let displayed = await isTrulyDisplayed(driver, target);
     let attempts = 0;
@@ -731,7 +770,31 @@ const actionHandlers: ReadonlyMap<string, ActionHandler> = new Map([
                 await scrollIntoViewSafe(_driver, target, selector, 3);
             }
             await (target.click() as Promise<void>);
-            await typeTextIntoTarget(_driver, target, text, selector);
+            if (PLATFORM === 'android') {
+                // Prefer setValue — it clears the field first and types the
+                // full string atomically, so masked inputs (expiry MM/YY,
+                // cvv) can't auto-advance focus mid-fill. Fall back to W3C
+                // keys() only when the element id goes stale between click
+                // and setValue, which happens for RN masked fields that
+                // remount on focus (card-number with its compound
+                // className+description selector). keys() types into the
+                // focused element without needing element resolution, at the
+                // cost of character-by-character delivery that short masked
+                // inputs can truncate — so we only use it as a fallback.
+                try {
+                    await typeTextIntoTarget(_driver, target, text, selector);
+                } catch (err) {
+                    const msg = (err as Error).message || '';
+                    if (/wasn't found|NoSuchElement/i.test(msg)) {
+                        process.stderr.write(`[Appium-DBG] TYPE ${selector} setValue stale, retrying via keys(): ${msg}\n`);
+                        await _driver.keys(text);
+                    } else {
+                        throw err;
+                    }
+                }
+            } else {
+                await typeTextIntoTarget(_driver, target, text, selector);
+            }
             await dismissKeyboard(_driver);
             return `Typed text into mobile element: ${selector}`;
         },

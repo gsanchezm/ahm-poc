@@ -21,8 +21,11 @@ export async function navigateToCheckout(market?: string, accessToken?: string):
         await sendIntent('WAIT_FOR_ELEMENT', 'checkoutScreenLanding||8000');
         // Step 2: wait for cart hydration — screen flips to screen-checkout once API responds
         await sendIntent('WAIT_FOR_ELEMENT', 'checkoutHeader||15000');
-        // Step 3: form inputs confirm the checkout form is fully rendered
-        await sendIntent('WAIT_FOR_ELEMENT', 'streetInput||5000');
+        // Step 3: form inputs confirm the checkout form is fully rendered.
+        // First scenario of a run hits a cold JS bundle; 20 s absorbs that
+        // cold start while still surfacing real regressions quickly on later
+        // scenarios where the bundle is already warm.
+        await sendIntent('WAIT_FOR_ELEMENT', 'streetInput||20000');
         log.info({ market }, 'Deep linked to checkout screen (atomic mobile path)');
         return;
     }
