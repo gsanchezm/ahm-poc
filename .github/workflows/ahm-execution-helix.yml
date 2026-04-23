@@ -554,16 +554,36 @@ jobs:
           xcrun simctl boot "$IOS_UDID" || true
           xcrun simctl bootstatus "$IOS_UDID" -b
 
-      - name: Install and Start Docker (Colima)
-        run: |
-          brew install colima docker docker-compose
-          colima start
-          sudo ln -s ~/.colima/default/docker.sock /var/run/docker.sock
-
       - name: Start MinIO Telemetry Storage
         run: |
-          docker compose -f infrastructure/minio-compose.yml up -d
-          sleep 5
+          case "$(uname -m)" in
+            arm64) MINIO_ARCH="arm64" ;;
+            x86_64) MINIO_ARCH="amd64" ;;
+            *)
+              echo "Unsupported macOS architecture: $(uname -m)"
+              exit 1
+              ;;
+          esac
+
+          curl -fL "https://dl.min.io/server/minio/release/darwin-${MINIO_ARCH}/minio" \
+            -o /tmp/minio
+          chmod +x /tmp/minio
+
+          mkdir -p /tmp/ahm-minio-data
+          MINIO_ROOT_USER=minioadmin \
+          MINIO_ROOT_PASSWORD=minioadmin \
+            /tmp/minio server /tmp/ahm-minio-data --address ":9000" --console-address ":9001" &
+
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:9000/minio/health/live >/dev/null; then
+              echo "MinIO ready"
+              exit 0
+            fi
+            sleep 1
+          done
+
+          echo "MinIO did not become healthy"
+          exit 1
 
       - name: Start Appium server
         run: |
