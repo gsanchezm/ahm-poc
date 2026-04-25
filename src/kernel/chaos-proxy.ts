@@ -14,13 +14,13 @@ const SERVER_PORT_NUMBER = 50051;
 const SERVER_PORT = `0.0.0.0:${SERVER_PORT_NUMBER}`;
 const ACTION_TYPE_SEPARATOR = '||';
 
-// --- Plugin Address Configuration (environment-driven) ---
+// --- Plugin Address Configuration (Environment-driven) ---
 
 const PLUGIN_ADDRESSES: Readonly<Record<string, string>> = {
     playwright:  process.env.PLAYWRIGHT_ADDRESS  || 'localhost:50052',
     appium:      process.env.APPIUM_ADDRESS       || 'localhost:50053',
     performance: process.env.GATLING_ADDRESS      || 'localhost:50054',
-    api:         process.env.API_ADAPTER_ADDRESS   || 'localhost:50055',
+    api:         process.env.API_ADAPTER_ADDRESS  || 'localhost:50055',
 };
 
 // --- Types ---
@@ -38,6 +38,8 @@ interface TelemetryRecord {
     status: 'PASS' | 'FAIL';
     durationMs: number;
     error: string | null;
+    piCalculusLatencyMs: number; // Pi-Calculus gRPC serialization cost
+    proxyOverheadMs: number;     // Architectural overhead of the microkernel
 }
 
 // --- 1. Proto Loading (Pi-Calculus Channel Initialization) ---
@@ -51,12 +53,12 @@ const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
 });
 const ptomProto = (grpc.loadPackageDefinition(packageDefinition) as any).ptom;
 
-// --- 2. Plugin Client Pool (lazy initialization) ---
+// --- 2. Plugin Client Pool (Lazy Initialization) ---
 
 const pluginClients: Map<string, any> = new Map();
 
 function getPluginClient(platform: string): any {
-    // platform may be "playwright:0" — extract the driver name for routing
+    // Platform may be structured as "playwright:0" — extract the driver name for routing
     const key = platform.split(':')[0].toLowerCase();
     if (pluginClients.has(key)) return pluginClients.get(key);
 
@@ -73,7 +75,7 @@ function getPluginClient(platform: string): any {
     return client;
 }
 
-// --- 3. Route to Plugin via gRPC (replaces in-memory adapter calls) ---
+// --- 3. Route to Plugin via gRPC (Replaces In-Memory Adapter Calls) ---
 
 function routeToPlugin(
     platform: string,
@@ -108,7 +110,7 @@ function isTransientJitter(error: unknown): boolean {
     return TRANSIENT_SIGNATURE_REGEX.test(`${name}: ${message}`);
 }
 
-// --- 5. Delay helper ---
+// --- 5. Delay Helper ---
 
 const delay = (ms: number): Promise<void> =>
     new Promise((resolve) => setTimeout(resolve, ms));
@@ -146,11 +148,11 @@ async function suppressChaos(
     return { status: 'FAIL', error: 'Chaos suppression threshold exceeded.' };
 }
 
-// --- 7. TYPE-aware Locator Resolution ---
+// --- 7. TYPE-Aware Locator Resolution ---
 
 const PASSTHROUGH_ACTIONS = new Set(['NAVIGATE', 'TEARDOWN', 'EVALUATE', 'HIDE_KEYBOARD']);
 
-// Actions that use "logicalKey||payload" format — resolve only the key part.
+// Actions that utilize the "logicalKey||payload" format.
 // TYPE:             logicalKey||text
 // WAIT_FOR_ELEMENT: logicalKey||timeoutMs
 // ASSERT_TEXT:      logicalKey||expectedText
@@ -159,12 +161,12 @@ const COMPOSITE_ACTIONS = new Set(['TYPE', 'WAIT_FOR_ELEMENT', 'ASSERT_TEXT']);
 function resolveSelector(actionId: string, rawSelector: string): string {
     const normalized = actionId.toUpperCase();
 
-    // NAVIGATE, TEARDOWN, EVALUATE pass raw values — no locator resolution.
+    // NAVIGATE, TEARDOWN, EVALUATE pass raw values — bypassing locator resolution.
     if (PASSTHROUGH_ACTIONS.has(normalized)) {
         return rawSelector;
     }
 
-    // Composite actions: resolve only the key portion; preserve the payload after ||.
+    // Composite actions: resolve solely the key portion; preserve the payload succeeding the || separator.
     if (COMPOSITE_ACTIONS.has(normalized) && rawSelector.includes(ACTION_TYPE_SEPARATOR)) {
         const sepIndex = rawSelector.indexOf(ACTION_TYPE_SEPARATOR);
         const logicalKey = rawSelector.slice(0, sepIndex);
@@ -175,13 +177,15 @@ function resolveSelector(actionId: string, rawSelector: string): string {
     return resolveLocator(rawSelector);
 }
 
-// --- 8. Telemetry ---
+// --- 8. Telemetry Emission ---
 
 function emitTelemetry(
     actionId: string,
     platform: string,
     outcome: IntentOutcome,
     durationMs: number,
+    grpcLatencyMs: number,
+    proxyOverheadMs: number
 ): void {
     const record: TelemetryRecord = {
         timestamp: new Date().toISOString(),
@@ -190,35 +194,55 @@ function emitTelemetry(
         status: outcome.status,
         durationMs: Math.round(durationMs * 100) / 100,
         error: outcome.error ?? null,
+        piCalculusLatencyMs: Math.round(grpcLatencyMs * 100) / 100,
+        proxyOverheadMs: Math.round(proxyOverheadMs * 100) / 100,
     };
-    // Stdout → pipe to MinIO
+    // Emit to Standard Output → Piped to MinIO Object Storage
     process.stdout.write(JSON.stringify(record) + '\n');
 }
 
 // --- 9. gRPC Handler ---
 
 async function handleExecuteIntent(call: any, callback: any): Promise<void> {
-    const startMark = performance.now();
-    const { actionId, targetSelector, platform } = call.request;
+    const receiveTime = Date.now(); // Absolute timestamp upon reception
+    const startMark = performance.now(); // High-resolution mark for duration calculation
+    
+    // The client is expected to inject 'clientSentAt'. Defaults to 0 if absent.
+    const { actionId, targetSelector, platform, clientSentAt } = call.request;
+
+    // 1. Calculate Pi-Calculus Latency (Network Time-of-Flight & Serialization)
+    const grpcLatencyMs = clientSentAt ? (receiveTime - clientSentAt) : 0;
 
     let outcome: IntentOutcome;
+    let pluginStartMark = 0;
+    let pluginDurationMs = 0;
 
     try {
         // --- THE INDIRECTION BOUNDARY (PROXY PATTERN) ---
-        // Intercept the logical key and resolve it to a platform/viewport
-        // specific selector using the .env context.
+        // Intercept the logical key and resolve it to a platform/viewport-specific concrete selector.
         const concreteSelector = resolveSelector(actionId, targetSelector);
 
-        // Forward the CONCRETE selector to the plugin, wrapped in the Lyapunov Stabilizer
+        // Measure strictly the temporal cost of the driver (Playwright/Appium) execution.
+        pluginStartMark = performance.now();
         outcome = await suppressChaos(() =>
             routeToPlugin(platform, actionId, concreteSelector),
         );
+        pluginDurationMs = performance.now() - pluginStartMark;
+
     } catch (error: any) {
         outcome = { status: 'FAIL', error: error.message };
+        if (pluginStartMark > 0) {
+            pluginDurationMs = performance.now() - pluginStartMark;
+        }
     }
 
-    // Emit Telemetry using the original logical key for cross-platform metrics
-    emitTelemetry(actionId, platform, outcome, performance.now() - startMark);
+    const totalDurationMs = performance.now() - startMark;
+    
+    // 2. Calculate Proxy Overhead (Total duration minus the target UI driver execution time)
+    const proxyOverheadMs = totalDurationMs - pluginDurationMs;
+
+    // 3. Emit Enriched Telemetry
+    emitTelemetry(actionId, platform, outcome, totalDurationMs, grpcLatencyMs, proxyOverheadMs);
 
     callback(null, {
         status: outcome.status,
@@ -243,7 +267,7 @@ async function main(): Promise<void> {
         grpc.ServerCredentials.createInsecure(),
         (err, port) => {
             if (err) {
-                logger.error(`Failed to bind server: ${err}`);
+                logger.error(`[p-TOM] Failed to bind microkernel server: ${err}`);
                 process.exit(1);
             }
             logger.warn(
@@ -254,6 +278,6 @@ async function main(): Promise<void> {
 }
 
 main().catch((err) => {
-    logger.error(`Startup failed: ${err.message}`);
+    logger.error(`[p-TOM] Fatal startup sequence failure: ${err.message}`);
     process.exit(1);
 });

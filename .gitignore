@@ -49,3 +49,5 @@ results/
 artifacts/
 generate-ahm-data.sh
 .claude/
+run-and-download.sh
+

@@ -43,8 +43,12 @@ export function sendIntent(
     const resolvedPlatform = `${driver}:${workerId}`;
 
     return new Promise((resolve, reject) => {
+        // Stamp the dispatch instant immediately prior to gRPC marshalling so the
+        // proxy can derive Pi-Calculus serialization latency (Δ = receiveTime − clientSentAt).
+        const clientSentAt = Date.now();
+
         client.ExecuteIntent(
-            { actionId, targetSelector, platform: resolvedPlatform },
+            { actionId, targetSelector, platform: resolvedPlatform, clientSentAt },
             (err: Error | null, response: IntentResult) => {
                 if (err) return reject(err);
                 if (response.status === 'FAIL') {

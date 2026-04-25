@@ -13,6 +13,10 @@ message IntentRequest {
   string actionId = 1;
   string targetSelector = 2;
   string platform = 3;
+  // Wall-clock dispatch timestamp (epoch ms) injected by the client.
+  // Used by the proxy to compute Pi-Calculus serialization latency
+  // (network time-of-flight + protobuf marshalling) on the receiving side.
+  double clientSentAt = 4;
 }
 
 message IntentResponse {
