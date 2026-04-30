@@ -56,16 +56,75 @@ env:
 # =============================================================================
 jobs:
 
-  # ---------------------------------------------------------------------------
-  # Job 1: API E2E
-  # ---------------------------------------------------------------------------
-  api-smoke:
-    name: API E2E — Checkout
+  gate-api:
+    name: Gate — API
     runs-on: ubuntu-latest
     if: >-
       github.event_name != 'workflow_dispatch'
       || inputs.platform == 'all'
       || inputs.platform == 'api'
+    steps:
+      - run: echo "API selected"
+
+  gate-web-desktop:
+    name: Gate — Web Desktop
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name != 'workflow_dispatch'
+      || inputs.platform == 'all'
+      || inputs.platform == 'web'
+    steps:
+      - run: echo "Web desktop selected"
+
+  gate-web-responsive:
+    name: Gate — Web Responsive
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name != 'workflow_dispatch'
+      || inputs.platform == 'all'
+      || inputs.platform == 'web'
+    steps:
+      - run: echo "Web responsive selected"
+
+  gate-android:
+    name: Gate — Android
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name != 'workflow_dispatch'
+      || inputs.platform == 'all'
+      || inputs.platform == 'mobile'
+      || inputs.platform == 'android'
+    steps:
+      - run: echo "Android selected"
+
+  gate-ios:
+    name: Gate — iOS
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name != 'workflow_dispatch'
+      || inputs.platform == 'all'
+      || inputs.platform == 'mobile'
+      || inputs.platform == 'ios'
+    steps:
+      - run: echo "iOS selected"
+
+  gate-gatling:
+    name: Gate — Gatling
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name != 'workflow_dispatch'
+      || inputs.platform == 'all'
+      || inputs.platform == 'perf'
+    steps:
+      - run: echo "Gatling selected"
+
+  # ---------------------------------------------------------------------------
+  # Job 1: API E2E
+  # ---------------------------------------------------------------------------
+  api-smoke:
+    name: API E2E — Checkout
+    needs: gate-api
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v6
@@ -143,11 +202,8 @@ jobs:
   # ---------------------------------------------------------------------------
   e2e-web:
     name: E2E — Web Desktop (Playwright)
+    needs: gate-web-desktop
     runs-on: ubuntu-latest
-    if: >-
-      github.event_name != 'workflow_dispatch'
-      || inputs.platform == 'all'
-      || inputs.platform == 'web'
 
     steps:
       - uses: actions/checkout@v6
@@ -273,11 +329,8 @@ jobs:
   # ---------------------------------------------------------------------------
   e2e-web-responsive:
     name: E2E — Web Responsive (Playwright)
+    needs: gate-web-responsive
     runs-on: ubuntu-latest
-    if: >-
-      github.event_name != 'workflow_dispatch'
-      || inputs.platform == 'all'
-      || inputs.platform == 'web'
 
     steps:
       - uses: actions/checkout@v6
@@ -403,12 +456,8 @@ jobs:
   # ---------------------------------------------------------------------------
   e2e-android:
     name: E2E — Android (Appium)
+    needs: gate-android
     runs-on: ubuntu-latest
-    if: >-
-      github.event_name != 'workflow_dispatch'
-      || inputs.platform == 'all'
-      || inputs.platform == 'mobile'
-      || inputs.platform == 'android'
 
     steps:
       - uses: actions/checkout@v6
@@ -572,12 +621,8 @@ jobs:
   # ---------------------------------------------------------------------------
   e2e-ios:
     name: E2E — iOS (Appium)
+    needs: gate-ios
     runs-on: macos-latest
-    if: >-
-      github.event_name != 'workflow_dispatch'
-      || inputs.platform == 'all'
-      || inputs.platform == 'mobile'
-      || inputs.platform == 'ios'
 
     steps:
       - uses: actions/checkout@v6
@@ -728,11 +773,8 @@ jobs:
   # ---------------------------------------------------------------------------
   perf-gatling:
     name: Perf — Gatling ${{ inputs.perf_profile || 'smoke' }}
+    needs: gate-gatling
     runs-on: ubuntu-latest
-    if: >-
-      github.event_name != 'workflow_dispatch'
-      || inputs.platform == 'all'
-      || inputs.platform == 'perf'
 
     steps:
       - uses: actions/checkout@v6
