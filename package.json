@@ -16,7 +16,16 @@
     "preperf:stress": "pnpm run perf:generate",
     "perf:smoke": "PERF_PROFILE=smoke node -r dotenv/config node_modules/@gatling.io/cli/target/index.js run --sources-folder src/core/tests/checkout/simulations --simulation checkout-load",
     "perf:load": "PERF_PROFILE=load node -r dotenv/config node_modules/@gatling.io/cli/target/index.js run --sources-folder src/core/tests/checkout/simulations --simulation checkout-load",
-    "perf:stress": "PERF_PROFILE=stress node -r dotenv/config node_modules/@gatling.io/cli/target/index.js run --sources-folder src/core/tests/checkout/simulations --simulation checkout-load"
+    "perf:stress": "PERF_PROFILE=stress node -r dotenv/config node_modules/@gatling.io/cli/target/index.js run --sources-folder src/core/tests/checkout/simulations --simulation checkout-load",
+    "metrics:manifest": "ts-node scripts/metrics/generate-run-manifest.ts",
+    "metrics:inventory": "ts-node scripts/metrics/extract-scenario-inventory.ts",
+    "metrics:coverage": "ts-node scripts/metrics/build-platform-coverage.ts",
+    "metrics:normalize": "ts-node scripts/metrics/normalize-telemetry.ts",
+    "metrics:durations": "ts-node scripts/metrics/aggregate-durations.ts",
+    "metrics:tables": "ts-node scripts/metrics/build-article-tables.ts",
+    "metrics:api": "ts-node scripts/metrics/normalize-api-contract-telemetry.ts",
+    "metrics:visual": "ts-node scripts/metrics/normalize-visual-contract-telemetry.ts",
+    "metrics:all": "pnpm run metrics:inventory && pnpm run metrics:coverage && pnpm run metrics:normalize && pnpm run metrics:durations && pnpm run metrics:api && pnpm run metrics:visual && pnpm run metrics:tables"
   },
   "keywords": [],
   "author": "",

@@ -47,8 +47,12 @@ scripts/
 src/core/tests/checkout/simulations/checkout-rows.generated.ts
 results/
 ahm_artifacts/
+ahm-artifacs-old/
+ahm-artifacts-old/
 generate-ahm-data.sh
 .claude/
+CLAUDE.md
 run-and-download.sh
 analyze_telemetry.py
 figures/
+*.csv

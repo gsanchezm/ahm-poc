@@ -58,6 +58,10 @@ function loadLocators(): Record<string, any> {
     return merged;
 }
 
+export function hasLocatorKey(logicalKey: string): boolean {
+    return Object.prototype.hasOwnProperty.call(loadLocators(), logicalKey);
+}
+
 export function resolveLocator(logicalKey: string): string {
     const platform = getPlatform();
 
