@@ -57,38 +57,15 @@ env:
 jobs:
 
   # ---------------------------------------------------------------------------
-  # Job 0: Execution configuration
-  # ---------------------------------------------------------------------------
-  configure-execution:
-    name: Configure execution matrix
-    runs-on: ubuntu-latest
-    outputs:
-      platform: ${{ steps.config.outputs.platform }}
-      perf_profile: ${{ steps.config.outputs.perf_profile }}
-      perf_users: ${{ steps.config.outputs.perf_users }}
-      perf_duration: ${{ steps.config.outputs.perf_duration }}
-      android_api_level: ${{ steps.config.outputs.android_api_level }}
-
-    steps:
-      - name: Resolve workflow inputs
-        id: config
-        run: |
-          echo "platform=${{ github.event_name == 'workflow_dispatch' && inputs.platform || 'all' }}" >> "$GITHUB_OUTPUT"
-          echo "perf_profile=${{ github.event_name == 'workflow_dispatch' && inputs.perf_profile || 'smoke' }}" >> "$GITHUB_OUTPUT"
-          echo "perf_users=${{ github.event_name == 'workflow_dispatch' && inputs.perf_users || '20' }}" >> "$GITHUB_OUTPUT"
-          echo "perf_duration=${{ github.event_name == 'workflow_dispatch' && inputs.perf_duration || '120' }}" >> "$GITHUB_OUTPUT"
-          echo "android_api_level=${{ github.event_name == 'workflow_dispatch' && inputs.android_api_level || '33' }}" >> "$GITHUB_OUTPUT"
-
-  # ---------------------------------------------------------------------------
   # Job 1: API E2E
   # ---------------------------------------------------------------------------
   api-smoke:
     name: API E2E — Checkout
-    needs: configure-execution
     runs-on: ubuntu-latest
     if: >-
-      needs.configure-execution.outputs.platform == 'all'
-      || needs.configure-execution.outputs.platform == 'api'
+      github.event_name != 'workflow_dispatch'
+      || inputs.platform == 'all'
+      || inputs.platform == 'api'
 
     steps:
       - uses: actions/checkout@v6
@@ -166,11 +143,11 @@ jobs:
   # ---------------------------------------------------------------------------
   e2e-web:
     name: E2E — Web Desktop (Playwright)
-    needs: configure-execution
     runs-on: ubuntu-latest
     if: >-
-      needs.configure-execution.outputs.platform == 'all'
-      || needs.configure-execution.outputs.platform == 'web'
+      github.event_name != 'workflow_dispatch'
+      || inputs.platform == 'all'
+      || inputs.platform == 'web'
 
     steps:
       - uses: actions/checkout@v6
@@ -296,11 +273,11 @@ jobs:
   # ---------------------------------------------------------------------------
   e2e-web-responsive:
     name: E2E — Web Responsive (Playwright)
-    needs: configure-execution
     runs-on: ubuntu-latest
     if: >-
-      needs.configure-execution.outputs.platform == 'all'
-      || needs.configure-execution.outputs.platform == 'web'
+      github.event_name != 'workflow_dispatch'
+      || inputs.platform == 'all'
+      || inputs.platform == 'web'
 
     steps:
       - uses: actions/checkout@v6
@@ -426,12 +403,12 @@ jobs:
   # ---------------------------------------------------------------------------
   e2e-android:
     name: E2E — Android (Appium)
-    needs: configure-execution
     runs-on: ubuntu-latest
     if: >-
-      needs.configure-execution.outputs.platform == 'all'
-      || needs.configure-execution.outputs.platform == 'mobile'
-      || needs.configure-execution.outputs.platform == 'android'
+      github.event_name != 'workflow_dispatch'
+      || inputs.platform == 'all'
+      || inputs.platform == 'mobile'
+      || inputs.platform == 'android'
 
     steps:
       - uses: actions/checkout@v6
@@ -488,7 +465,7 @@ jobs:
             --device /dev/kvm \
             -p 5554:5554 \
             -p 5555:5555 \
-            -e API_LEVEL=${{ needs.configure-execution.outputs.android_api_level }} \
+            -e API_LEVEL=${{ inputs.android_api_level || '33' }} \
             -e IMG_TYPE=google_apis \
             -e ARCHITECTURE=x86_64 \
             -e DEVICE_ID=pixel \
@@ -497,7 +474,7 @@ jobs:
             -e DISABLE_ANIMATION=true \
             -e DISABLE_HIDDEN_POLICY=true \
             -e SKIP_AUTH=1 \
-            halimqarroum/docker-android:api-${{ needs.configure-execution.outputs.android_api_level }}
+            halimqarroum/docker-android:api-${{ inputs.android_api_level || '33' }}
 
       - name: Start Appium server
         run: |
@@ -595,12 +572,12 @@ jobs:
   # ---------------------------------------------------------------------------
   e2e-ios:
     name: E2E — iOS (Appium)
-    needs: configure-execution
     runs-on: macos-latest
     if: >-
-      needs.configure-execution.outputs.platform == 'all'
-      || needs.configure-execution.outputs.platform == 'mobile'
-      || needs.configure-execution.outputs.platform == 'ios'
+      github.event_name != 'workflow_dispatch'
+      || inputs.platform == 'all'
+      || inputs.platform == 'mobile'
+      || inputs.platform == 'ios'
 
     steps:
       - uses: actions/checkout@v6
@@ -750,12 +727,12 @@ jobs:
   # Job 6: Perf — Gatling Simulation
   # ---------------------------------------------------------------------------
   perf-gatling:
-    name: Perf — Gatling ${{ needs.configure-execution.outputs.perf_profile }}
-    needs: configure-execution
+    name: Perf — Gatling ${{ inputs.perf_profile || 'smoke' }}
     runs-on: ubuntu-latest
     if: >-
-      needs.configure-execution.outputs.platform == 'all'
-      || needs.configure-execution.outputs.platform == 'perf'
+      github.event_name != 'workflow_dispatch'
+      || inputs.platform == 'all'
+      || inputs.platform == 'perf'
 
     steps:
       - uses: actions/checkout@v6
@@ -780,18 +757,18 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Run simulation
-        run: pnpm perf:${{ needs.configure-execution.outputs.perf_profile }}
+        run: pnpm perf:${{ inputs.perf_profile || 'smoke' }}
         env:
           API_BASE_URL: ${{ secrets.API_BASE_URL }}
-          PERF_USERS: ${{ needs.configure-execution.outputs.perf_users }}
-          PERF_DURATION: ${{ needs.configure-execution.outputs.perf_duration }}
+          PERF_USERS: ${{ inputs.perf_users || '20' }}
+          PERF_DURATION: ${{ inputs.perf_duration || '120' }}
           LANGUAGE: en
 
       - name: Upload Gatling HTML report
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: gatling-report-${{ needs.configure-execution.outputs.perf_profile }}-${{ github.run_id }}
+          name: gatling-report-${{ inputs.perf_profile || 'smoke' }}-${{ github.run_id }}
           path: target/gatling/
           if-no-files-found: ignore
           retention-days: 30
