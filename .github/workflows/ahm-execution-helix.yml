@@ -19,7 +19,7 @@ on:
         required: false
         default: all
         type: choice
-        options: [all, api, web, android, ios, perf]
+        options: [all, api, web, mobile, android, ios, perf]
       perf_profile:
         description: 'Gatling injection profile (perf only)'
         required: false
@@ -57,14 +57,38 @@ env:
 jobs:
 
   # ---------------------------------------------------------------------------
+  # Job 0: Execution configuration
+  # ---------------------------------------------------------------------------
+  configure-execution:
+    name: Configure execution matrix
+    runs-on: ubuntu-latest
+    outputs:
+      platform: ${{ steps.config.outputs.platform }}
+      perf_profile: ${{ steps.config.outputs.perf_profile }}
+      perf_users: ${{ steps.config.outputs.perf_users }}
+      perf_duration: ${{ steps.config.outputs.perf_duration }}
+      android_api_level: ${{ steps.config.outputs.android_api_level }}
+
+    steps:
+      - name: Resolve workflow inputs
+        id: config
+        run: |
+          echo "platform=${{ github.event_name == 'workflow_dispatch' && inputs.platform || 'all' }}" >> "$GITHUB_OUTPUT"
+          echo "perf_profile=${{ github.event_name == 'workflow_dispatch' && inputs.perf_profile || 'smoke' }}" >> "$GITHUB_OUTPUT"
+          echo "perf_users=${{ github.event_name == 'workflow_dispatch' && inputs.perf_users || '20' }}" >> "$GITHUB_OUTPUT"
+          echo "perf_duration=${{ github.event_name == 'workflow_dispatch' && inputs.perf_duration || '120' }}" >> "$GITHUB_OUTPUT"
+          echo "android_api_level=${{ github.event_name == 'workflow_dispatch' && inputs.android_api_level || '33' }}" >> "$GITHUB_OUTPUT"
+
+  # ---------------------------------------------------------------------------
   # Job 1: API E2E
   # ---------------------------------------------------------------------------
   api-smoke:
     name: API E2E — Checkout
+    needs: configure-execution
     runs-on: ubuntu-latest
     if: >-
-      github.event_name == 'workflow_dispatch'
-      && inputs.platform == 'api'
+      needs.configure-execution.outputs.platform == 'all'
+      || needs.configure-execution.outputs.platform == 'api'
 
     steps:
       - uses: actions/checkout@v6
@@ -142,11 +166,11 @@ jobs:
   # ---------------------------------------------------------------------------
   e2e-web:
     name: E2E — Web Desktop (Playwright)
+    needs: configure-execution
     runs-on: ubuntu-latest
     if: >-
-      github.event_name != 'workflow_dispatch'
-      || inputs.platform == 'all'
-      || inputs.platform == 'web'
+      needs.configure-execution.outputs.platform == 'all'
+      || needs.configure-execution.outputs.platform == 'web'
 
     steps:
       - uses: actions/checkout@v6
@@ -184,15 +208,35 @@ jobs:
 
       - name: Start proxy + plugins
         run: |
-          npx ts-node -r dotenv/config src/kernel/chaos-proxy.ts &
-          npx ts-node -r dotenv/config src/plugins/playwright/server.ts &
-          npx ts-node -r dotenv/config src/plugins/api/server.ts &
+          set -euo pipefail
+          mkdir -p /tmp/ahm-ci-logs
+
+          npx ts-node -r dotenv/config src/kernel/chaos-proxy.ts > /tmp/ahm-ci-logs/proxy.log 2>&1 &
+          PROXY_PID=$!
+          npx ts-node -r dotenv/config src/plugins/playwright/server.ts > /tmp/ahm-ci-logs/playwright.log 2>&1 &
+          PLAYWRIGHT_PID=$!
+          npx ts-node -r dotenv/config src/plugins/api/server.ts > /tmp/ahm-ci-logs/api.log 2>&1 &
+          API_PID=$!
+
           for port in 50051 50052 50055; do
-            for i in $(seq 1 20); do
+            ready=false
+            for i in $(seq 1 30); do
               nc -z localhost $port 2>/dev/null && echo "port $port ready" && break
+              nc -z 127.0.0.1 $port 2>/dev/null && echo "port $port ready" && ready=true && break
               sleep 1
             done
+            if [ "$ready" != "true" ] && ! nc -z 127.0.0.1 "$port" 2>/dev/null; then
+              echo "Port $port did not become ready."
+              echo "Proxy log:" && cat /tmp/ahm-ci-logs/proxy.log || true
+              echo "Playwright log:" && cat /tmp/ahm-ci-logs/playwright.log || true
+              echo "API log:" && cat /tmp/ahm-ci-logs/api.log || true
+              exit 1
+            fi
           done
+
+          kill -0 "$PROXY_PID"
+          kill -0 "$PLAYWRIGHT_PID"
+          kill -0 "$API_PID"
         env:
           BASE_URL: ${{ secrets.BASE_URL }}
           API_BASE_URL: ${{ secrets.API_BASE_URL }}
@@ -200,6 +244,8 @@ jobs:
           VIEWPORT: desktop
           DRIVER: playwright
           HEADLESS: 'true'
+          PLAYWRIGHT_ADDRESS: 127.0.0.1:50052
+          API_ADAPTER_ADDRESS: 127.0.0.1:50055
           PLUGIN_PLAYWRIGHT: 'true'
           PLUGIN_API: 'true'
 
@@ -211,11 +257,21 @@ jobs:
           PLATFORM: web
           VIEWPORT: desktop
           DRIVER: playwright
+          PROXY_ADDRESS: 127.0.0.1:50051
           HEADLESS: 'true'
           MINIO_ENDPOINT: localhost
           MINIO_PORT: '9000'
           MINIO_ACCESS_KEY: minioadmin
           MINIO_SECRET_KEY: minioadmin
+
+      - name: Upload service logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: service-logs-${{ github.job }}-${{ github.run_id }}
+          path: /tmp/ahm-ci-logs/
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: Parse JSONL to CSV Artifacts
         if: always()
@@ -240,11 +296,11 @@ jobs:
   # ---------------------------------------------------------------------------
   e2e-web-responsive:
     name: E2E — Web Responsive (Playwright)
+    needs: configure-execution
     runs-on: ubuntu-latest
     if: >-
-      github.event_name != 'workflow_dispatch'
-      || inputs.platform == 'all'
-      || inputs.platform == 'web'
+      needs.configure-execution.outputs.platform == 'all'
+      || needs.configure-execution.outputs.platform == 'web'
 
     steps:
       - uses: actions/checkout@v6
@@ -282,15 +338,35 @@ jobs:
 
       - name: Start proxy + plugins
         run: |
-          npx ts-node -r dotenv/config src/kernel/chaos-proxy.ts &
-          npx ts-node -r dotenv/config src/plugins/playwright/server.ts &
-          npx ts-node -r dotenv/config src/plugins/api/server.ts &
+          set -euo pipefail
+          mkdir -p /tmp/ahm-ci-logs
+
+          npx ts-node -r dotenv/config src/kernel/chaos-proxy.ts > /tmp/ahm-ci-logs/proxy.log 2>&1 &
+          PROXY_PID=$!
+          npx ts-node -r dotenv/config src/plugins/playwright/server.ts > /tmp/ahm-ci-logs/playwright.log 2>&1 &
+          PLAYWRIGHT_PID=$!
+          npx ts-node -r dotenv/config src/plugins/api/server.ts > /tmp/ahm-ci-logs/api.log 2>&1 &
+          API_PID=$!
+
           for port in 50051 50052 50055; do
-            for i in $(seq 1 20); do
+            ready=false
+            for i in $(seq 1 30); do
               nc -z localhost $port 2>/dev/null && echo "port $port ready" && break
+              nc -z 127.0.0.1 $port 2>/dev/null && echo "port $port ready" && ready=true && break
               sleep 1
             done
+            if [ "$ready" != "true" ] && ! nc -z 127.0.0.1 "$port" 2>/dev/null; then
+              echo "Port $port did not become ready."
+              echo "Proxy log:" && cat /tmp/ahm-ci-logs/proxy.log || true
+              echo "Playwright log:" && cat /tmp/ahm-ci-logs/playwright.log || true
+              echo "API log:" && cat /tmp/ahm-ci-logs/api.log || true
+              exit 1
+            fi
           done
+
+          kill -0 "$PROXY_PID"
+          kill -0 "$PLAYWRIGHT_PID"
+          kill -0 "$API_PID"
         env:
           BASE_URL: ${{ secrets.BASE_URL }}
           API_BASE_URL: ${{ secrets.API_BASE_URL }}
@@ -298,6 +374,8 @@ jobs:
           VIEWPORT: responsive
           DRIVER: playwright
           HEADLESS: 'true'
+          PLAYWRIGHT_ADDRESS: 127.0.0.1:50052
+          API_ADAPTER_ADDRESS: 127.0.0.1:50055
           PLUGIN_PLAYWRIGHT: 'true'
           PLUGIN_API: 'true'
 
@@ -309,11 +387,21 @@ jobs:
           PLATFORM: web
           VIEWPORT: responsive
           DRIVER: playwright
+          PROXY_ADDRESS: 127.0.0.1:50051
           HEADLESS: 'true'
           MINIO_ENDPOINT: localhost
           MINIO_PORT: '9000'
           MINIO_ACCESS_KEY: minioadmin
           MINIO_SECRET_KEY: minioadmin
+
+      - name: Upload service logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: service-logs-${{ github.job }}-${{ github.run_id }}
+          path: /tmp/ahm-ci-logs/
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: Parse JSONL to CSV Artifacts
         if: always()
@@ -338,10 +426,12 @@ jobs:
   # ---------------------------------------------------------------------------
   e2e-android:
     name: E2E — Android (Appium)
+    needs: configure-execution
     runs-on: ubuntu-latest
     if: >-
-      github.event_name == 'workflow_dispatch'
-      && (inputs.platform == 'all' || inputs.platform == 'android')
+      needs.configure-execution.outputs.platform == 'all'
+      || needs.configure-execution.outputs.platform == 'mobile'
+      || needs.configure-execution.outputs.platform == 'android'
 
     steps:
       - uses: actions/checkout@v6
@@ -398,7 +488,7 @@ jobs:
             --device /dev/kvm \
             -p 5554:5554 \
             -p 5555:5555 \
-            -e API_LEVEL=${{ inputs.android_api_level || '33' }} \
+            -e API_LEVEL=${{ needs.configure-execution.outputs.android_api_level }} \
             -e IMG_TYPE=google_apis \
             -e ARCHITECTURE=x86_64 \
             -e DEVICE_ID=pixel \
@@ -407,7 +497,7 @@ jobs:
             -e DISABLE_ANIMATION=true \
             -e DISABLE_HIDDEN_POLICY=true \
             -e SKIP_AUTH=1 \
-            halimqarroum/docker-android:api-${{ inputs.android_api_level || '33' }}
+            halimqarroum/docker-android:api-${{ needs.configure-execution.outputs.android_api_level }}
 
       - name: Start Appium server
         run: |
@@ -505,10 +595,12 @@ jobs:
   # ---------------------------------------------------------------------------
   e2e-ios:
     name: E2E — iOS (Appium)
+    needs: configure-execution
     runs-on: macos-latest
     if: >-
-      github.event_name == 'workflow_dispatch'
-      && (inputs.platform == 'all' || inputs.platform == 'ios')
+      needs.configure-execution.outputs.platform == 'all'
+      || needs.configure-execution.outputs.platform == 'mobile'
+      || needs.configure-execution.outputs.platform == 'ios'
 
     steps:
       - uses: actions/checkout@v6
@@ -658,12 +750,12 @@ jobs:
   # Job 6: Perf — Gatling Simulation
   # ---------------------------------------------------------------------------
   perf-gatling:
-    name: Perf — Gatling ${{ inputs.perf_profile || 'smoke' }}
+    name: Perf — Gatling ${{ needs.configure-execution.outputs.perf_profile }}
+    needs: configure-execution
     runs-on: ubuntu-latest
     if: >-
-      github.event_name == 'push'
-      || (github.event_name == 'workflow_dispatch'
-          && (inputs.platform == 'all' || inputs.platform == 'perf'))
+      needs.configure-execution.outputs.platform == 'all'
+      || needs.configure-execution.outputs.platform == 'perf'
 
     steps:
       - uses: actions/checkout@v6
@@ -688,18 +780,18 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Run simulation
-        run: pnpm perf:${{ inputs.perf_profile || 'smoke' }}
+        run: pnpm perf:${{ needs.configure-execution.outputs.perf_profile }}
         env:
           API_BASE_URL: ${{ secrets.API_BASE_URL }}
-          PERF_USERS: ${{ inputs.perf_users || '20' }}
-          PERF_DURATION: ${{ inputs.perf_duration || '120' }}
+          PERF_USERS: ${{ needs.configure-execution.outputs.perf_users }}
+          PERF_DURATION: ${{ needs.configure-execution.outputs.perf_duration }}
           LANGUAGE: en
 
       - name: Upload Gatling HTML report
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: gatling-report-${{ inputs.perf_profile || 'smoke' }}-${{ github.run_id }}
+          name: gatling-report-${{ needs.configure-execution.outputs.perf_profile }}-${{ github.run_id }}
           path: target/gatling/
           if-no-files-found: ignore
           retention-days: 30
